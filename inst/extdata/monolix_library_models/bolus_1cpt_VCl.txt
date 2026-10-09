@@ -1,0 +1,9 @@
+EQUATION:
+odeType = stiff
+
+
+; Central compartment
+ddt_Ac = - (Cl/V) * Ac
+
+; Concentration in central compartment
+Cc = Ac/V

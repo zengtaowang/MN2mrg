@@ -1,0 +1,14 @@
+EQUATION:
+odeType = stiff
+
+; Central compartment
+ddt_Ac = - Cl/V1*Ac - k12*Ac + k21*Ap2 - k13*Ac + k31*Ap3
+
+; Peripheral compartment 1
+ddt_Ap2 = k12*Ac - k21*Ap2
+
+; Peripheral compartment 2
+ddt_Ap3 = k13*Ac - k31*Ap3
+
+; Concentration in central compartment
+Cc = Ac/V1

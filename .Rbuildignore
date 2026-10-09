@@ -1,0 +1,69 @@
+# ---- IDE / project metadata ---------------------------------------------
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.vscode$
+^\.idea$
+
+# ---- Git and repo scaffolding -------------------------------------------
+^\.gitignore$
+^\.gitattributes$
+^\.github$
+
+# ---- Licence attribution ------------------------------------------------
+# LICENSE itself DOES ship: Apache 2.0 section 4(a) requires giving
+# recipients a copy, and DESCRIPTION references it as `| file LICENSE`.
+# NOTICE is not one of R's standard top-level files, so shipping it costs an
+# R CMD check NOTE. The attribution it carries is already in DESCRIPTION's
+# Authors@R (Eli Lilly and Company, role "cph") for anyone who only has the
+# tarball, and NOTICE stays in the repository for the published source.
+^NOTICE$
+
+# ---- OS clutter ---------------------------------------------------------
+^\.DS_Store$
+
+# ---- R session artifacts ------------------------------------------------
+^\.Rhistory$
+^\.RData$
+^\.Ruserdata$
+
+# ---- Devcontainer / Claude Code scratch ---------------------------------
+^\.devcontainer$
+^\.claude$
+^CLAUDE\.md$
+
+# ---- pkgdown site (uncomment lines once pkgdown is initialised) ---------
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+
+# ---- CRAN submission scratch --------------------------------------------
+^cran-comments\.md$
+^README\.Rmd$
+
+# ---- Pre-package legacy layout (to be moved under inst/ or R/) ----------
+^app\.R$
+^UTILS$
+^DEBUG_TEST$
+^PRESENTATION$
+^CONFIG$
+^mike_scripts$
+^www$
+
+# ---- Deployment / helper scripts not part of the package ----------------
+^manifest\.json$
+^install_packages\.R$
+
+# ---- Planning / notes not part of the package --------------------------
+^nonmem_integration_plan\.md$
+^todo\.md$
+
+# The whole manual_testing tree -- including spot-tests/ -- is excluded from
+# the R package build. It exists for local artifact review and is not part of
+# the installed package.
+^manual_testing$
+
+.claude/
+.claire/
+.devcontainer/
+
+local/

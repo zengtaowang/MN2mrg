@@ -1,0 +1,983 @@
+/* ==========================================================================
+   MN2mrg — "Precision" Design System
+   Theme for shinydashboard 0.7.3 / AdminLTE 2.x / Bootstrap 3
+   Base skin: skin-black (set in dashboardPage)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. DESIGN TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* Palette */
+  --theme-red:           #D31710;
+  --theme-red-dark:      #b5130d;
+  --theme-red-deep:      #8f0f0b;
+  --theme-red-light:     rgba(211, 23, 16, 0.10);
+  --theme-pink:          #FBCFC8;
+  --theme-brown:         #521207;
+  --theme-brown-dark:    #3d0d05;
+  --theme-brown-hover:   #6b1a0a;
+  --theme-rose:          #FDE8E5;
+  --theme-rose-mid:      #f7d4cf;
+
+  /* Semantic aliases — keeps all downstream rules working */
+  --pmx-navy:            #E4EBF1;
+  --pmx-navy-dark:       #D3DCE5;
+  --pmx-navy-hover:      #D3DCE5;
+  --pmx-teal:            #D31710;
+  --pmx-teal-dark:       #b5130d;
+  --pmx-teal-light:      rgba(251, 207, 200, 0.35);
+  --pmx-bg:              #FDE8E5;
+  --pmx-white:           #ffffff;
+  --pmx-border:          #f0d5d1;
+  --pmx-text:            #2d3748;
+  --pmx-text-muted:      #8c6b67;
+  --pmx-shadow-card:     0 2px 8px rgba(82, 18, 7, 0.08);
+  --pmx-shadow-hover:    0 4px 16px rgba(82, 18, 7, 0.14);
+  --pmx-radius:          8px;
+  --pmx-radius-sm:       5px;
+  --pmx-font-ui:         'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --pmx-font-mono:       'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --pmx-transition:      0.18s ease;
+
+  --pmx-primary:         #D31710;
+  --pmx-primary-dark:    #b5130d;
+  --pmx-success:         #2e9e6b;
+  --pmx-success-dark:    #267d56;
+  --pmx-warning:         #d97706;
+  --pmx-warning-dark:    #b45309;
+  --pmx-info:            #4f7df3;
+  --pmx-info-dark:       #3b66d4;
+  --pmx-danger:          #e05252;
+  --pmx-danger-dark:     #c83e3e;
+}
+
+/* --------------------------------------------------------------------------
+   1. GLOBAL TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+body,
+.content-wrapper,
+.main-footer,
+.box-body,
+.box-header,
+.tab-content,
+.form-control,
+.btn,
+h1, h2, h3, h4, h5, h6,
+p, li, td, th, label,
+.help-block {
+  font-family: var(--pmx-font-ui) !important;
+}
+
+body {
+  color: var(--pmx-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --------------------------------------------------------------------------
+   2. HEADER
+   Logo area: Lilly Bold Brown — matches sidebar for visual continuity
+   Navbar:    Lilly Red       — signature brand color
+   -------------------------------------------------------------------------- */
+.skin-black .main-header {
+  box-shadow: 0 2px 6px rgba(82, 18, 7, 0.30) !important;
+}
+
+.skin-black .main-header > .logo {
+  background-color: var(--theme-brown) !important;
+  color: var(--pmx-white) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  height: auto !important;
+  min-height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 16px !important;
+}
+
+.skin-black .main-header > .logo:hover {
+  background-color: var(--theme-brown-hover) !important;
+}
+
+/* Two-line title layout */
+.logo-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.logo-title {
+  font-size: 15.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1.25 !important;
+}
+
+.logo-subtitle {
+  font-size: 9.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.6px !important;
+  opacity: 0.78 !important;
+  line-height: 1.25 !important;
+  margin-top: 2px !important;
+  text-transform: uppercase !important;
+}
+
+.skin-black .main-header .navbar {
+  background-color: var(--theme-red) !important;
+}
+
+.skin-black .main-header .navbar .sidebar-toggle {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.skin-black .main-header .navbar .sidebar-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--pmx-white) !important;
+}
+
+.skin-black .main-header .navbar > .sidebar-toggle {
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.skin-black .main-header .navbar .nav > li > a {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.skin-black .main-header .navbar .nav > li > a:hover,
+.skin-black .main-header .navbar .nav > .active > a {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--pmx-white) !important;
+}
+
+@media (max-width: 767px) {
+  .skin-black .main-header > .logo {
+    background-color: var(--theme-brown) !important;
+  }
+  .skin-black .main-header > .logo:hover {
+    background-color: var(--theme-brown-hover) !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. SIDEBAR
+   Grey-slate (#8A969E) with dark text — readable, professional
+   -------------------------------------------------------------------------- */
+.skin-black .wrapper,
+.skin-black .main-sidebar,
+.skin-black .left-side {
+  background-color: var(--pmx-navy) !important;
+}
+
+.sidebar {
+  color: rgba(26, 34, 40, 0.88) !important;
+}
+
+.skin-black .sidebar-menu > li > a {
+  color: rgba(26, 34, 40, 0.80) !important;
+  border-left: 3px solid transparent !important;
+  font-weight: 400;
+  font-size: 13.5px;
+  letter-spacing: 0.1px;
+  transition: background-color var(--pmx-transition), color var(--pmx-transition),
+              border-left-color var(--pmx-transition);
+  padding: 11px 5px 11px 15px !important;
+}
+
+.skin-black .sidebar-menu > li:hover > a {
+  background-color: var(--pmx-navy-hover) !important;
+  color: #1a2228 !important;
+  border-left-color: rgba(26, 34, 40, 0.25) !important;
+}
+
+.skin-black .sidebar-menu > li.active > a {
+  background-color: var(--pmx-navy-hover) !important;
+  color: #1a2228 !important;
+  border-left-color: var(--theme-red) !important;
+  font-weight: 500;
+}
+
+.sidebar-menu > li > a > .fa,
+.sidebar-menu > li > a > .glyphicon,
+.sidebar-menu > li > a > .ion {
+  color: rgba(26, 34, 40, 0.45) !important;
+  transition: color var(--pmx-transition);
+  width: 20px;
+}
+
+.sidebar-menu > li:hover > a > .fa,
+.sidebar-menu > li:hover > a > .glyphicon,
+.sidebar-menu > li.active > a > .fa,
+.sidebar-menu > li.active > a > .glyphicon {
+  color: var(--theme-red) !important;
+}
+
+.skin-black .sidebar-menu > li > .treeview-menu {
+  background-color: var(--pmx-navy-dark) !important;
+  margin: 0 !important;
+}
+
+.skin-black .sidebar a {
+  color: rgba(26, 34, 40, 0.75) !important;
+}
+
+.skin-black .treeview-menu > li > a {
+  color: rgba(26, 34, 40, 0.75) !important;
+  font-size: 13px !important;
+  padding: 7px 5px 7px 28px !important;
+  transition: color var(--pmx-transition), background-color var(--pmx-transition);
+}
+
+.skin-black .treeview-menu > li > a > .fa,
+.skin-black .treeview-menu > li > a > .glyphicon {
+  color: rgba(26, 34, 40, 0.38) !important;
+  transition: color var(--pmx-transition);
+}
+
+.skin-black .treeview-menu > li > a:hover,
+.skin-black .treeview-menu > li.active > a {
+  color: #1a2228 !important;
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+.skin-black .treeview-menu > li.active > a {
+  color: var(--theme-red) !important;
+  font-weight: 500;
+}
+
+.skin-black .treeview-menu > li.active > a > .fa,
+.skin-black .treeview-menu > li > a:hover > .fa {
+  color: var(--theme-red) !important;
+}
+
+.sidebar-menu li > a > .fa-angle-left,
+.sidebar-menu li > a > .pull-right-container > .fa-angle-left {
+  color: rgba(26, 34, 40, 0.40) !important;
+}
+
+.skin-black .sidebar-menu > li.header {
+  color: rgba(26, 34, 40, 0.50) !important;
+  background: transparent !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase;
+}
+
+.skin-black .sidebar a:hover {
+  text-decoration: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. CONTENT AREA
+   Lilly Neutral Rose background — warm, pharmaceutical, distinctive
+   -------------------------------------------------------------------------- */
+.content-wrapper,
+.right-side {
+  background-color: var(--pmx-bg) !important;
+}
+
+.content-header {
+  padding: 12px 15px 0 15px !important;
+}
+
+.content {
+  padding: 10px 15px 10px 15px !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. BOXES — white cards on rose background
+   -------------------------------------------------------------------------- */
+.box {
+  border-radius: var(--pmx-radius) !important;
+  border-top: none !important;
+  box-shadow: var(--pmx-shadow-card) !important;
+  background: var(--pmx-white) !important;
+  border: 1px solid var(--pmx-border) !important;
+  margin-bottom: 20px !important;
+  transition: box-shadow var(--pmx-transition);
+}
+
+.box:hover {
+  box-shadow: var(--pmx-shadow-hover) !important;
+}
+
+.box-header {
+  background: var(--pmx-white) !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid var(--pmx-border) !important;
+  border-radius: var(--pmx-radius) var(--pmx-radius) 0 0 !important;
+}
+
+.box-header .box-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--pmx-text) !important;
+  letter-spacing: 0.1px;
+}
+
+.box-body {
+  padding: 16px !important;
+  border-radius: 0 0 var(--pmx-radius) var(--pmx-radius) !important;
+  background: var(--pmx-white) !important;
+}
+
+.box-footer {
+  background: var(--theme-rose) !important;
+  border-top: 1px solid var(--pmx-border) !important;
+  border-radius: 0 0 var(--pmx-radius) var(--pmx-radius) !important;
+  padding: 12px 16px !important;
+}
+
+/* Solid header boxes (solidHeader = TRUE) */
+.box.box-solid.box-primary {
+  border: 1px solid rgba(211, 23, 16, 0.30) !important;
+}
+.box.box-solid.box-primary > .box-header {
+  background: var(--theme-brown) !important;
+  background-color: var(--theme-brown) !important;
+  border-bottom: none !important;
+  border-radius: var(--pmx-radius) var(--pmx-radius) 0 0 !important;
+}
+.box.box-solid.box-primary > .box-header .box-title,
+.box.box-solid.box-primary > .box-header a,
+.box.box-solid.box-primary > .box-header .btn {
+  color: var(--pmx-white) !important;
+}
+
+.box.box-solid.box-info {
+  border: 1px solid rgba(79, 125, 243, 0.3) !important;
+}
+.box.box-solid.box-info > .box-header {
+  background: var(--pmx-info) !important;
+  background-color: var(--pmx-info) !important;
+  border-bottom: none !important;
+  border-radius: var(--pmx-radius) var(--pmx-radius) 0 0 !important;
+}
+.box.box-solid.box-info > .box-header .box-title,
+.box.box-solid.box-info > .box-header a,
+.box.box-solid.box-info > .box-header .btn {
+  color: var(--pmx-white) !important;
+}
+
+.box.box-solid.box-warning {
+  border: 1px solid rgba(217, 119, 6, 0.3) !important;
+}
+.box.box-solid.box-warning > .box-header {
+  background: var(--pmx-warning) !important;
+  background-color: var(--pmx-warning) !important;
+  border-bottom: none !important;
+  border-radius: var(--pmx-radius) var(--pmx-radius) 0 0 !important;
+}
+.box.box-solid.box-warning > .box-header .box-title,
+.box.box-solid.box-warning > .box-header a,
+.box.box-solid.box-warning > .box-header .btn {
+  color: var(--pmx-white) !important;
+}
+
+.box.box-solid.box-success {
+  border: 1px solid rgba(46, 158, 107, 0.3) !important;
+}
+.box.box-solid.box-success > .box-header {
+  background: var(--pmx-success) !important;
+  background-color: var(--pmx-success) !important;
+  border-bottom: none !important;
+  border-radius: var(--pmx-radius) var(--pmx-radius) 0 0 !important;
+}
+.box.box-solid.box-success > .box-header .box-title,
+.box.box-solid.box-success > .box-header a,
+.box.box-solid.box-success > .box-header .btn {
+  color: var(--pmx-white) !important;
+}
+
+/* Status-only boxes (no solidHeader) — colored top accent bar */
+.box.box-primary { border-top: 3px solid var(--pmx-primary) !important; }
+.box.box-info    { border-top: 3px solid var(--pmx-info)    !important; }
+.box.box-warning { border-top: 3px solid var(--pmx-warning) !important; }
+.box.box-success { border-top: 3px solid var(--pmx-success) !important; }
+.box.box-danger  { border-top: 3px solid var(--pmx-danger)  !important; }
+
+.box.box-primary,
+.box.box-info,
+.box.box-warning,
+.box.box-success,
+.box.box-danger {
+  border-left: 1px solid var(--pmx-border) !important;
+  border-right: 1px solid var(--pmx-border) !important;
+  border-bottom: 1px solid var(--pmx-border) !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. BUTTONS
+   -------------------------------------------------------------------------- */
+.btn {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13.5px !important;
+  letter-spacing: 0.2px !important;
+  padding: 7px 16px !important;
+  transition: background-color var(--pmx-transition),
+              border-color var(--pmx-transition),
+              box-shadow var(--pmx-transition),
+              opacity var(--pmx-transition) !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
+}
+
+.btn:active,
+.btn.active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+.btn:focus,
+.btn:active:focus {
+  outline: 3px solid rgba(211, 23, 16, 0.28) !important;
+  outline-offset: 2px !important;
+}
+
+.btn-sm {
+  padding: 4px 10px !important;
+  font-size: 12.5px !important;
+}
+
+.btn-lg {
+  padding: 10px 22px !important;
+  font-size: 15px !important;
+}
+
+.btn-primary {
+  background-color: var(--pmx-primary) !important;
+  border-color: var(--pmx-primary) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--pmx-primary-dark) !important;
+  border-color: var(--pmx-primary-dark) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-primary:active,
+.btn-primary.active,
+.open > .dropdown-toggle.btn-primary {
+  background-color: var(--theme-red-deep) !important;
+  border-color: var(--theme-red-deep) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-primary.disabled,
+.btn-primary[disabled],
+fieldset[disabled] .btn-primary {
+  background-color: var(--pmx-primary) !important;
+  border-color: var(--pmx-primary) !important;
+  opacity: 0.5 !important;
+}
+
+.btn-success {
+  background-color: var(--pmx-success) !important;
+  border-color: var(--pmx-success) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-success:hover,
+.btn-success:focus {
+  background-color: var(--pmx-success-dark) !important;
+  border-color: var(--pmx-success-dark) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-success:active,
+.btn-success.active {
+  background-color: var(--pmx-success-dark) !important;
+  border-color: var(--pmx-success-dark) !important;
+}
+.btn-success.disabled,
+.btn-success[disabled],
+fieldset[disabled] .btn-success {
+  background-color: var(--pmx-success) !important;
+  border-color: var(--pmx-success) !important;
+  opacity: 0.5 !important;
+}
+
+.btn-warning {
+  background-color: var(--pmx-warning) !important;
+  border-color: var(--pmx-warning) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-warning:hover,
+.btn-warning:focus {
+  background-color: var(--pmx-warning-dark) !important;
+  border-color: var(--pmx-warning-dark) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-warning:active,
+.btn-warning.active {
+  background-color: var(--pmx-warning-dark) !important;
+  border-color: var(--pmx-warning-dark) !important;
+}
+.btn-warning.disabled,
+.btn-warning[disabled],
+fieldset[disabled] .btn-warning {
+  background-color: var(--pmx-warning) !important;
+  border-color: var(--pmx-warning) !important;
+  opacity: 0.5 !important;
+}
+
+.btn-info {
+  background-color: var(--pmx-info) !important;
+  border-color: var(--pmx-info) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-info:hover,
+.btn-info:focus {
+  background-color: var(--pmx-info-dark) !important;
+  border-color: var(--pmx-info-dark) !important;
+  color: var(--pmx-white) !important;
+}
+.btn-info:active,
+.btn-info.active {
+  background-color: var(--pmx-info-dark) !important;
+  border-color: var(--pmx-info-dark) !important;
+}
+
+.btn-default {
+  background-color: var(--pmx-white) !important;
+  border-color: var(--pmx-border) !important;
+  color: var(--pmx-text) !important;
+}
+.btn-default:hover,
+.btn-default:focus {
+  background-color: var(--theme-rose) !important;
+  border-color: #e0bcb7 !important;
+  color: var(--pmx-text) !important;
+}
+.btn-default:active,
+.btn-default.active {
+  background-color: var(--theme-rose-mid) !important;
+  border-color: #d6b0ab !important;
+}
+
+/* Download buttons — ghost style that gains red on hover */
+.btn.btn-default[download],
+a.btn.btn-default {
+  color: var(--pmx-text-muted) !important;
+}
+.btn.btn-default[download]:hover,
+a.btn.btn-default:hover {
+  background-color: var(--theme-rose) !important;
+  border-color: var(--theme-red) !important;
+  color: var(--theme-red) !important;
+}
+
+.btn.disabled,
+.btn[disabled],
+fieldset[disabled] .btn {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. FORM CONTROLS
+   -------------------------------------------------------------------------- */
+.form-control {
+  border: 1px solid #e4cbc7 !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  background-color: var(--pmx-white) !important;
+  color: var(--pmx-text) !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13.5px !important;
+  box-shadow: none !important;
+  transition: border-color var(--pmx-transition), box-shadow var(--pmx-transition) !important;
+  height: 34px !important;
+}
+
+.form-control:focus {
+  border-color: var(--theme-red) !important;
+  box-shadow: 0 0 0 3px rgba(211, 23, 16, 0.15) !important;
+  outline: none !important;
+}
+
+textarea.form-control {
+  height: auto !important;
+  min-height: 80px;
+  line-height: 1.5 !important;
+}
+
+.selectize-input {
+  border: 1px solid #e4cbc7 !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  box-shadow: none !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13.5px !important;
+  min-height: 34px !important;
+  padding: 5px 10px !important;
+  transition: border-color var(--pmx-transition), box-shadow var(--pmx-transition) !important;
+}
+
+.selectize-input.focus,
+.selectize-input.input-active {
+  border-color: var(--theme-red) !important;
+  box-shadow: 0 0 0 3px rgba(211, 23, 16, 0.15) !important;
+}
+
+.selectize-dropdown {
+  border: 1px solid #e4cbc7 !important;
+  border-radius: 0 0 var(--pmx-radius-sm) var(--pmx-radius-sm) !important;
+  box-shadow: var(--pmx-shadow-hover) !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13.5px !important;
+}
+
+.selectize-dropdown .option:hover,
+.selectize-dropdown .option.active {
+  background-color: var(--pmx-teal-light) !important;
+  color: var(--pmx-text) !important;
+}
+
+.shiny-input-container .checkbox label,
+.shiny-input-container .radio label,
+.shiny-input-container .checkbox-inline,
+.shiny-input-container .radio-inline {
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13.5px !important;
+  color: var(--pmx-text) !important;
+  font-weight: 400 !important;
+}
+
+.control-label,
+.shiny-input-container > label {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--pmx-text) !important;
+  letter-spacing: 0.2px !important;
+  margin-bottom: 5px !important;
+  font-family: var(--pmx-font-ui) !important;
+}
+
+.help-block {
+  color: var(--pmx-text-muted) !important;
+  font-size: 12px !important;
+  font-family: var(--pmx-font-ui) !important;
+  margin-top: 4px !important;
+}
+
+.input-group .btn-default {
+  border-color: #e4cbc7 !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. TAB PANELS (tabsetPanel with type = "tabs")
+   -------------------------------------------------------------------------- */
+.nav-tabs {
+  border-bottom: 2px solid var(--pmx-border) !important;
+  margin-bottom: 0 !important;
+}
+
+.nav-tabs > li {
+  margin-bottom: -2px !important;
+}
+
+.nav-tabs > li > a {
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  padding: 10px 18px !important;
+  color: var(--pmx-text-muted) !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+  font-family: var(--pmx-font-ui) !important;
+  background: transparent !important;
+  transition: color var(--pmx-transition), border-bottom-color var(--pmx-transition) !important;
+}
+
+.nav-tabs > li > a:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-bottom: 2px solid var(--theme-pink) !important;
+  color: var(--pmx-text) !important;
+}
+
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  color: var(--theme-red) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid var(--theme-red) !important;
+  font-weight: 600 !important;
+  cursor: default !important;
+}
+
+.tab-content {
+  background: transparent !important;
+  padding-top: 16px !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. DATATABLES
+   -------------------------------------------------------------------------- */
+table.dataTable {
+  border-collapse: collapse !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13px !important;
+}
+
+table.dataTable thead th,
+table.dataTable thead td {
+  background-color: #f5edec !important;
+  color: var(--pmx-text) !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+  letter-spacing: 0.3px !important;
+  border-bottom: 2px solid var(--pmx-border) !important;
+  padding: 10px 12px !important;
+  white-space: nowrap;
+}
+
+table.dataTable thead th.sorting:after,
+table.dataTable thead th.sorting_asc:after,
+table.dataTable thead th.sorting_desc:after {
+  color: var(--theme-red) !important;
+}
+
+table.dataTable tbody tr {
+  background-color: var(--pmx-white) !important;
+  border-bottom: 1px solid #faf0ee !important;
+  transition: background-color 0.1s ease !important;
+}
+
+table.dataTable tbody tr.odd {
+  background-color: #fef9f8 !important;
+}
+
+table.dataTable tbody tr:hover,
+table.dataTable tbody tr.odd:hover,
+table.dataTable tbody tr.even:hover {
+  background-color: #fde8e5 !important;
+}
+
+table.dataTable tbody td {
+  padding: 8px 12px !important;
+  color: var(--pmx-text) !important;
+  border-top: none !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: 4px !important;
+  border: 1px solid transparent !important;
+  color: var(--pmx-text-muted) !important;
+  font-size: 13px !important;
+  padding: 3px 8px !important;
+  transition: background-color var(--pmx-transition) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--pmx-teal-light) !important;
+  border-color: var(--theme-red) !important;
+  color: var(--theme-red) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: var(--theme-red) !important;
+  border-color: var(--theme-red) !important;
+  color: var(--pmx-white) !important;
+  font-weight: 600 !important;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing {
+  font-size: 12.5px !important;
+  color: var(--pmx-text-muted) !important;
+  font-family: var(--pmx-font-ui) !important;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #e4cbc7 !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  padding: 4px 10px !important;
+  font-family: var(--pmx-font-ui) !important;
+  font-size: 13px !important;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+  border-color: var(--theme-red) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(211, 23, 16, 0.15) !important;
+}
+
+/* --------------------------------------------------------------------------
+   10. VERBATIM OUTPUT (pre tags)
+   -------------------------------------------------------------------------- */
+pre,
+.shiny-text-output,
+.verbatim-text-output {
+  font-family: var(--pmx-font-mono) !important;
+  font-size: 12.5px !important;
+  background-color: #fef5f4 !important;
+  border: 1px solid var(--pmx-border) !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  color: #3d1a17 !important;
+  padding: 12px 14px !important;
+  line-height: 1.6 !important;
+}
+
+/* --------------------------------------------------------------------------
+   11. ACE EDITOR CONTAINER
+   -------------------------------------------------------------------------- */
+.ace_editor {
+  border: 1px solid #e4cbc7 !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  font-family: var(--pmx-font-mono) !important;
+  font-size: 13px !important;
+}
+
+/* --------------------------------------------------------------------------
+   12. DOSING EVENT GROUPS
+   -------------------------------------------------------------------------- */
+.dosing-event-group {
+  background: #fef9f8 !important;
+  border: 1px solid var(--pmx-border) !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  padding: 12px 14px !important;
+  margin-bottom: 12px !important;
+}
+
+.dosing-event-group h5 {
+  color: var(--pmx-text) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  margin-bottom: 10px !important;
+}
+
+.dosing-event-group hr {
+  border-top: 1px solid var(--pmx-border) !important;
+  margin: 10px 0 0 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   13. VPC STRATIFICATION CONFIG
+   -------------------------------------------------------------------------- */
+#vpc_stratify_config > div > div {
+  border-color: var(--pmx-border) !important;
+  border-radius: var(--pmx-radius-sm) !important;
+  background-color: #fef9f8 !important;
+}
+
+/* --------------------------------------------------------------------------
+   14. DETAILS / SUMMARY (collapsible Column Mapping)
+   -------------------------------------------------------------------------- */
+details {
+  border: 1px solid var(--pmx-border);
+  border-radius: var(--pmx-radius-sm);
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+details[open] {
+  padding-bottom: 12px;
+}
+
+details > summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #f5edec;
+  border-radius: var(--pmx-radius-sm) var(--pmx-radius-sm) 0 0;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--pmx-text);
+  list-style: none;
+  user-select: none;
+  transition: background-color var(--pmx-transition);
+}
+
+details > summary:hover {
+  background: var(--theme-rose-mid);
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary::before {
+  content: "▶  ";
+  font-size: 9px;
+  color: var(--theme-red);
+  margin-right: 4px;
+  transition: transform var(--pmx-transition);
+  display: inline-block;
+}
+
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details[open] > summary {
+  border-bottom: 1px solid var(--pmx-border);
+  border-radius: var(--pmx-radius-sm) var(--pmx-radius-sm) 0 0;
+}
+
+details > *:not(summary) {
+  padding: 0 14px;
+}
+
+/* --------------------------------------------------------------------------
+   15. MISC POLISH
+   -------------------------------------------------------------------------- */
+hr {
+  border-top: 1px solid var(--pmx-border) !important;
+  margin: 16px 0 !important;
+}
+
+.content-wrapper h4 {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--pmx-text) !important;
+  margin-top: 12px !important;
+  margin-bottom: 6px !important;
+}
+
+.content-wrapper h5 {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: var(--pmx-text) !important;
+}
+
+.plotly.html-widget,
+.js-plotly-plot {
+  border-radius: var(--pmx-radius-sm);
+}
+
+.modebar-group {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.modebar-group:hover {
+  opacity: 1;
+}
+
+.tab-pane .row {
+  margin-bottom: 0;
+}
+
+/* Scrollbar polish (WebKit) — warm brown tint */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(82, 18, 7, 0.20);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(82, 18, 7, 0.35);
+}

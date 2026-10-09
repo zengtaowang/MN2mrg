@@ -1,0 +1,105 @@
+# ---- R session artifacts -------------------------------------------------
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.Rprofile.user
+
+# ---- RStudio -------------------------------------------------------------
+.Rproj.user/
+*.Rproj
+
+# ---- R package build / check artifacts -----------------------------------
+*.tar.gz
+*.Rcheck/
+..Rcheck/
+
+# Roxygen build residue
+Meta/
+
+# Built vignettes (source lives under vignettes/; build output is generated).
+# vignettes/*.html catches the quarto render-in-place artifact when the
+# vignette is previewed locally; the copy that we ship for the reviewer
+# lives at docs/getting-started.html and IS tracked.
+vignettes/*.html
+vignettes/*_files/
+inst/doc/
+doc/
+
+# Compiled objects (if any C/C++/Fortran is added under src/)
+src/*.o
+src/*.so
+src/*.dll
+src/*.rds
+src-i386/
+src-x64/
+symbols.rds
+
+# ---- pkgdown site --------------------------------------------------------
+# docs/ is committed intentionally: it holds the standalone rendered HTML
+# guide (docs/getting-started.html) that we share with end-user reviewers.
+# If a pkgdown site is ever added, its output should also land under docs/.
+# .Rbuildignore keeps docs/ out of the R package tarball -- see there.
+# (Nothing to ignore here right now.)
+
+# ---- renv / packrat ------------------------------------------------------
+renv/library/
+renv/local/
+renv/lock/
+renv/python/
+renv/staging/
+packrat/lib*/
+packrat/src/
+
+# ---- Shiny / deployment scratch -----------------------------------------
+rsconnect/
+
+# ---- Project-local helper scripts (not part of the package) -------------
+install_packages.R
+
+# ---- Editors and IDEs ----------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# ---- OS ------------------------------------------------------------------
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---- Claude Code (project-local scratch) --------------------------------
+.claude/CHANGELOG.md
+
+# Gitignore the manual testing folder EXCEPT the reproducible spot-tests kit.
+# The kit's run.R scripts + synthetic inputs are committed so any contributor
+# can regenerate the expected artifacts locally; the outputs/ and real/ input
+# subdirs are re-ignored so generated artifacts and real (proprietary) data
+# never enter the repo.
+manual_testing/*
+!manual_testing/spot-tests/
+manual_testing/spot-tests/*/outputs/
+manual_testing/spot-tests/*/inputs/real/
+
+.claude/
+.claire/
+.devcontainer/
+
+local/
+
+# ---- Internal real-data references (must never reach the public repo) ----
+# These name internal programs, users and file systems. They stay on a
+# developer's machine and are deliberately untracked rather than deleted, so
+# the real-data regression tests and spot-test kits keep working locally.
+# Broad `tests/` and `manual_testing/` ignores were considered and rejected:
+# every file under those paths is already tracked, so the ignores would have
+# been a no-op for them while silently swallowing any NEW test file.
+tests/testthat/helper-real-data.R
+tests/testthat/test-real-data-monolix.R
+tests/testthat/test-real-data-nonmem.R
+manual_testing/spot-tests/real-paths.R

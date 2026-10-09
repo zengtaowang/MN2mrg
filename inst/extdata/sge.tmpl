@@ -1,0 +1,26 @@
+# clustermq SGE array-job template for VPC replicate dispatch.
+#
+# HPC dispatch is disabled in this release (see NEWS.md); this template ships
+# as reference infrastructure for run_vpc_sim(parallel_mode = "hpc"). It is a
+# starting point, not a working default: every site-specific line below has to
+# be edited for your own cluster before it will submit anything.
+#
+# The {{ ... }} placeholders are filled by clustermq::fill_template(). All of
+# job_name, n_jobs, auth and master are supplied by clustermq itself; log_file
+# keeps a `| /dev/null` default because run_vpc_sim() passes a real path but a
+# direct clustermq::Q() caller may not, and a defaultless placeholder would
+# hard-error for them.
+#$ -N {{ job_name }}             # job name
+#$ -t 1-{{ n_jobs }}             # array job
+#$ -j y                          # combine stdout/error in one file
+#$ -o {{ log_file | /dev/null }} # log files
+##$ -cwd                          # use current working directory
+#$ -V                            # use environment variables
+# #$ -pe smp 2                   # request 2 cores per job
+##$ -l h_rt=00:20:00             # cancels individual jobs after 20 minutes
+
+# SITE-SPECIFIC: make R available on the compute node. The module name is an
+# example only and will not resolve on another cluster -- replace it with your
+# own, or delete the line if R is already on the worker's PATH.
+# module load R/4.4.2
+CMQ_AUTH={{ auth }} R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'

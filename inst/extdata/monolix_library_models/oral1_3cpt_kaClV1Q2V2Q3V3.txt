@@ -1,0 +1,16 @@
+EQUATION:
+odeType = stiff
+; Depot compartment (oral absorption)
+ddt_Ad = -ka * Ad
+
+; Central compartment
+ddt_Ac = ka * Ad - (Cl/V1) * Ac - (Q2/V1) * Ac + (Q2/V2) * Ap2 - (Q3/V1) * Ac + (Q3/V3) * Ap3
+
+; Peripheral compartment 1
+ddt_Ap2 = (Q2/V1) * Ac - (Q2/V2) * Ap2
+
+; Peripheral compartment 2
+ddt_Ap3 = (Q3/V1) * Ac - (Q3/V3) * Ap3
+
+; Concentration in central compartment
+Cc = Ac/V1

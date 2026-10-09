@@ -1,0 +1,64 @@
+Package: MN2mrg
+Title: Translate Monolix and NONMEM Models to mrgsolve
+Version: 0.0.1.0000
+Authors@R: c(
+    person("Zengtao", "Wang", , "zengtao.wang@lilly.com",
+           role = c("aut", "cre"),
+           comment = "Original author of the Shiny app"),
+    person("Miles", "Samuel", , "miles_samuel@lilly.com",
+           role = "aut",
+           comment = "Tanslator to an R package"),
+    person("Eli Lilly and Company", ,
+           role = c("cph", "fnd"))
+  )
+Description: Automated R package and Shiny application toolkit for translating
+    population pharmacokinetic and pharmacodynamic (PK/PD) models from
+    Monolix and NONMEM formats into 'mrgsolve', an R-based ODE solver, for
+    simulation and analysis. Provides an integrated workflow for
+    post-estimation simulations including dosing exploration, sensitivity
+    analysis, visual predictive checks, and forest plots.
+License: Apache License (== 2.0) | file LICENSE
+URL: https://github.com/zengtaowang/MN2mrg
+BugReports: https://github.com/zengtaowang/MN2mrg/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.4.0)
+Imports:
+    bslib,
+    callr,
+    cowplot,
+    data.table,
+    dplyr,
+    DT,
+    fs,
+    ggplot2,
+    here,
+    magrittr,
+    mrggsave,
+    mrgmisc,
+    mrgsolve,
+    patchwork,
+    plotly,
+    pmforest,
+    purrr,
+    quarto,
+    readr,
+    rlang,
+    shiny,
+    shinyAce,
+    shinydashboard,
+    shinyFiles,
+    shinyjs,
+    stringr,
+    vpc,
+    withr,
+    yaml,
+    yspec
+Suggests:
+    clustermq,
+    lixoftConnectors,
+    testthat (>= 3.0.0)
+VignetteBuilder: quarto
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
