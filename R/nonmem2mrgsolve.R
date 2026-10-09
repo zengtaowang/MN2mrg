@@ -689,7 +689,7 @@ verifyModel <- function(model, dataset, table, table2 = NULL, filters,
   }
 
   ## Apply filters, if specified
-  if (nchar(filters)[1] > 0) {
+  if (length(filters) > 0 && nchar(filters)[1] > 0) {
     filters <- purrr::map(filters, ~parse(text = .x))
     for (ii in 1:length(filters))  dat <- dat %>% dplyr::filter(eval(filters[[ii]]))
   }
@@ -727,7 +727,7 @@ verifyModel <- function(model, dataset, table, table2 = NULL, filters,
   }
 
   ## check to see if table file contains required ETAs to check IPRED
-  netas <- convert_numeric(nrow(mrgsolve::omat(mod)))
+  netas <- convert_numeric(nrow(mrgsolve::as.matrix(mrgsolve::omat(mod))))
   etas <- purrr::map(1:netas, function(.i) {
     if (.i < 10) {
       paste0("ETA", .i)
