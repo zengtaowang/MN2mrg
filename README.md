@@ -38,11 +38,12 @@ remotes::install_github("zengtaowang/MN2mrg")
 devtools::install()
 ```
 
-`lixoftConnectors` is a `Suggests:` dependency: the package installs
-and its NONMEM paths run without Monolix, but the Monolix tabs in the
-Shiny app need it. On Posit Connect it is pre-installed with the
-MonolixSuite; on a laptop, install manually from
-`/opt/monolix/MonolixSuite<YEAR>R<x>/connectors/`.
+`lixoftConnectors` is required for Monolix
+model translation (the package installs and its NONMEM-only paths run
+without it). It ships
+with MonolixSuite; see
+<https://monolixsuite.slp-software.com/r-functions/2024R1/package-lixoftconnectors>
+for installation instructions.
 
 ## Launching the Shiny app
 
@@ -85,14 +86,10 @@ ggplot2::ggsave("vpc.png", p, width = 7, height = 5, dpi = 300)
 
 ## Development
 
-* R (>= 4.4.0). The deployed environment runs R 4.4.2.
+* R (>= 4.4.0).
 * `devtools::document()` regenerates `NAMESPACE` and `man/*.Rd` after
   any change under `R/`.
 * Quality gate: `devtools::check()` should return zero errors.
-* Deployment is to Posit Connect via `manifest.json`. Regenerate the
-  manifest only from R 4.4.2, not R 4.5.x: the manifest pins whatever R
-  generated it, so a mismatch produces a deployment that cannot resolve
-  its own dependencies.
 
 ## Repository layout
 
@@ -106,12 +103,8 @@ MN2mrg/
 │       ├── monolix_library_models/  Monolix PK library structural models
 │       └── sge.tmpl             SGE template, retained but unused (HPC off)
 ├── man/                        Roxygen-generated .Rd (do not hand-edit)
-├── vignettes/getting-started.qmd    Source of the getting-started guide
-├── docs/getting-started.html   Rendered guide, shareable with reviewers
 ├── DESCRIPTION                 Package metadata + dependencies
-├── NAMESPACE                   Roxygen-generated exports/imports
-├── NEWS.md                     Change log
-└── manifest.json               Posit Connect deployment manifest
+└── NAMESPACE                   Roxygen-generated exports/imports
 ```
 
 ## Authors
