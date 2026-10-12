@@ -17,6 +17,7 @@
 # Authors@R (Eli Lilly and Company, role "cph") for anyone who only has the
 # tarball, and NOTICE stays in the repository for the published source.
 ^NOTICE$
+^GET_STARTED\.md$
 
 # ---- OS clutter ---------------------------------------------------------
 ^\.DS_Store$

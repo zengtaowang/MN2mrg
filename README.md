@@ -1,5 +1,8 @@
 # MN2mrg
 
+For a visual tour of the app with screenshots, see
+[GET_STARTED.md](GET_STARTED.md).
+
 An R package with a Shiny front end for translating population
 pharmacokinetic and pharmacodynamic (PK/PD) models from Monolix and
 NONMEM into mrgsolve, and for running the downstream simulations a
