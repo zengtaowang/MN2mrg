@@ -4513,141 +4513,6 @@ prep_vpc_data <- function(raw_dat, column_map,
 
 '
 
-      # Resolve ADM->CMT map from the loaded structural model at download time
-      dl_adm_map_str <- tryCatch({
-        sm_path  <- getStructuralModel()
-        sm_lines <- readLines(resolve_lib_model_path(sm_path))
-        clean <- stringr::str_squish(stringr::str_replace(sm_lines, ";.*$", ""))
-        m     <- unlist(extract_adm_to_target(clean))
-        if (length(m) > 0) {
-          pairs <- paste0('"', names(m), '" = "', unname(m), '"', collapse = ", ")
-          paste0("c(", pairs, ")")
-        } else "c()"
-      }, error = function(e) "c()")
-
-      s_prep_monolix <- paste0(
-'# Dataset preparation: column renaming, MDV filtering,
-# DVID handling (including string -> numeric conversion), ADM->CMT mapping.
-prep_vpc_data <- function(raw_dat, column_map, dvid_map = NULL,
-                          ignore_cols = NULL, cat_cov_info = NULL) {
-  rename_col <- function(df, src, tgt) {
-    if (is.null(src) || src == "") return(df)
-    if (src %in% names(df)) {
-      if (src != tgt) {
-        if (tgt %in% names(df)) df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(src))
-      }
-    } else {
-      idx <- which(toupper(names(df)) == toupper(src))
-      if (length(idx) == 1) {
-        nm <- names(df)[idx]
-        if (tgt %in% names(df) && nm != tgt)
-          df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(nm))
-      }
-    }
-    df
-  }
-
-  for (std in c("ID","TIME","DV","AMT","EVID","DVID","RATE","II","ADDL","TAD","BQL")) {
-    src <- column_map[[std]]
-    if (!is.null(src) && nchar(src) > 0) raw_dat <- rename_col(raw_dat, src, std)
-  }
-
-  # Drop columns Monolix marks as "ignore" (embedded from headerTypes at download time)
-  if (length(ignore_cols) > 0) {
-    drop <- intersect(ignore_cols, names(raw_dat))
-    if (length(drop) > 0) raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(drop))
-  }
-
-  for (col in c("TIME","DV","AMT","EVID","RATE","II","ADDL"))
-    if (col %in% names(raw_dat) && !is.numeric(raw_dat[[col]]))
-      raw_dat <- dplyr::mutate(raw_dat,
-                               !!rlang::sym(col) := as.numeric(.data[[col]]))
-  if ("ID" %in% names(raw_dat) && !is.numeric(raw_dat[["ID"]]))
-    raw_dat <- dplyr::mutate(raw_dat, ID = as.numeric(as.factor(ID)))
-
-  if (!"EVID" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat,
-      EVID = if ("AMT" %in% names(raw_dat)) dplyr::if_else(is.na(AMT), 0, 1) else 0L)
-
-  mdv_col <- names(raw_dat)[toupper(names(raw_dat)) == "MDV"]
-  if (length(mdv_col) > 0) {
-    if ("BQL" %in% names(raw_dat)) {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0 & .data[["BQL"]] != 1))
-    } else {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0))
-    }
-  }
-
-  # ADM -> CMT mapping (resolved from structural model at script generation time)
-  adm_cmt_lookup <- ', dl_adm_map_str, '
-  adm_col <- names(raw_dat)[toupper(names(raw_dat)) == "ADM"]
-  if (length(adm_col) == 1 && length(adm_cmt_lookup) > 0) {
-    raw_dat <- raw_dat %>%
-      dplyr::mutate(CMT = adm_cmt_lookup[as.character(.data[[adm_col]])])
-
-    unmapped_dose <- is.na(raw_dat$CMT) & raw_dat$EVID == 1
-    if (any(unmapped_dose, na.rm = TRUE))
-      raw_dat <- raw_dat[!unmapped_dose, ]
-
-    raw_dat <- raw_dat %>%
-      dplyr::mutate(CMT = dplyr::if_else(is.na(CMT), "OBS", CMT))
-  }
-  if (!"CMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, CMT = dplyr::if_else(EVID == 1, 1, 0))
-
-  if (!"DVID" %in% names(raw_dat)) {
-    raw_dat <- dplyr::mutate(raw_dat, DVID = dplyr::if_else(EVID == 1, 0, 1))
-  } else if (!is.null(dvid_map) && length(dvid_map) > 0 &&
-             is.character(raw_dat$DVID)) {
-    dvid_ids <- names(dvid_map)
-    raw_dat  <- dplyr::mutate(raw_dat,
-      DVID = dplyr::coalesce(match(as.character(DVID), dvid_ids), 0L))
-  } else {
-    raw_dat <- dplyr::mutate(raw_dat,
-      DVID = dplyr::if_else(is.na(DVID), 0, as.numeric(DVID)))
-  }
-
-  # Categorical covariate encoding (info embedded from getCovariateInformation()
-  # at download time).  Must run BEFORE the char_cols drop below.
-  if (!is.null(cat_cov_info)) {
-    for (cov_name in names(cat_cov_info)) {
-      entry <- cat_cov_info[[cov_name]]
-      if (is.null(entry$type)) next
-
-      if (entry$type == "transformed") {
-        # Derived column (e.g. tSPECIES): create from source column using
-        # src_to_grp map and ordered group list (reference=0, others 1,2,...).
-        src_col <- entry$source_col
-        if (!src_col %in% names(raw_dat)) next
-        ordered    <- unlist(entry$ordered)
-        src_to_grp <- unlist(entry$src_to_grp)
-        grp_to_int <- stats::setNames(seq_along(ordered) - 1L, ordered)
-        raw_dat[[cov_name]] <-
-          grp_to_int[src_to_grp[as.character(raw_dat[[src_col]])]]
-
-      } else if (entry$type == "catcov") {
-        # Raw categorical column: encode to 0-based integer.
-        if (!cov_name %in% names(raw_dat)) next
-        ordered     <- unlist(entry$ordered)
-        cat_enc     <- stats::setNames(seq_along(ordered) - 1L, ordered)
-        raw_dat[[cov_name]] <- cat_enc[as.character(raw_dat[[cov_name]])]
-      }
-    }
-  }
-
-  char_cols <- setdiff(names(raw_dat)[vapply(raw_dat, is.character, logical(1))], "CMT")
-  if (length(char_cols) > 0)
-    raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(char_cols))
-
-  raw_dat %>% dplyr::arrange(ID, TIME) %>% dplyr::ungroup() %>%
-    dplyr::mutate(ROW = dplyr::row_number())
-}
-
-'
-      )
-
       s_vpc_top <- 'set_option <- function(lst, name, default = NULL) {
   val <- lst[[name]]
   if (is.null(val)) default else val
@@ -4720,14 +4585,14 @@ vpc.yaml <- function(yaml) {
 
 '
 
-      s_data_monolix <- '  raw_dat      <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  dvid_map     <- set_option(vpcspec, "dvid_map",           NULL)
-  ignore_cols  <- unlist(set_option(vpcspec, "ignore_columns",     list()))
-  cat_cov_info <- set_option(vpcspec, "cat_covariate_info", NULL)
-  dat <- prep_vpc_data(raw_dat, column_map,
-                       dvid_map    = dvid_map,
-                       ignore_cols = ignore_cols,
-                       cat_cov_info = cat_cov_info)
+      s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
+  opts_file <- file.path(dirname(normalizePath(yaml)), "vpc_opts.rds")
+  if (!file.exists(opts_file)) {
+    cat(paste0("\nFile ", opts_file, " does not exist!\n\n"))
+    return(invisible(NULL))
+  }
+  dat <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
+                          opts = readRDS(opts_file))$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
 
   filters <- map(vpcspec$filters, ~parse(text = .x))
@@ -4980,7 +4845,7 @@ vpc.yaml <- function(yaml) {
       )
       script <- paste0(
         s_header,
-        if (is_nonmem) s_prep_nonmem else s_prep_monolix,
+        if (is_nonmem) s_prep_nonmem else "",
         s_vpc_top,
         if (is_nonmem) s_data_nonmem else s_data_monolix,
         s_vpc_rest_a,
