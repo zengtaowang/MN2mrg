@@ -4,8 +4,7 @@ library(mrggsave)
 library(yspec)
 library(yaml)
 library(pmforest)
-
-source(here::here("utility-functions.R"))
+library(MN2mrg)
 
 ####
 ## function to create a forest plot

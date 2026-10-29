@@ -1,8 +1,8 @@
 # Backend utilities for the Forest Plot tab.
 #
 # The tab is a UI-driven wrapper around the same forest.R script (shipped in
-# inst/templates/forest_template.R) and utility-functions.R (shipped in
-# inst/templates/utility-functions.R) used by the pmx-skill-forest skill.
+# inst/templates/forest_template.R, which loads MN2mrg for its helpers) used
+# by the pmx-skill-forest skill.
 # The app collects the same interview answers, writes the same forest.yaml
 # (+ optional data_spec.yaml), and runs the unmodified forest.R script in
 # the background via callr.
@@ -368,14 +368,13 @@ build_forest_data_spec <- function(cov_meta) {
   spec
 }
 
-#' Copy the vendored forest.R and utility-functions.R into a working directory
+#' Copy the vendored forest.R into a working directory
 #'
 #' Populate `outdir` with the standalone forest reproducibility bundle:
-#' `forest.R` (a copy of `inst/templates/forest_template.R`),
-#' `utility-functions.R` (a copy of `inst/templates/utility-functions.R`),
-#' and an empty `.here` marker so that `here::here()` inside `forest.R`
-#' resolves to `outdir` rather than climbing to a higher `.git`/`.Rproj`
-#' root.
+#' `forest.R` (a copy of `inst/templates/forest_template.R`, which calls
+#' `library(MN2mrg)` for its helpers) and an empty `.here` marker so that
+#' `here::here()` inside `forest.R` resolves to `outdir` rather than climbing
+#' to a higher `.git`/`.Rproj` root.
 #'
 #' @param outdir Character. Directory to populate. Created if it does not
 #'   exist.
@@ -393,16 +392,6 @@ setup_forest_dir <- function(outdir) {
          "reinstall the package.")
   }
   file.copy(template_path, file.path(outdir, "forest.R"), overwrite = TRUE)
-
-  utility_template <- system.file("templates", "utility-functions.R",
-                                  package = "MN2mrg")
-  if (!nzchar(utility_template)) {
-    stop("utility-functions.R template not shipped with this MN2mrg ",
-         "install; reinstall the package.")
-  }
-  file.copy(utility_template,
-            file.path(outdir, "utility-functions.R"),
-            overwrite = TRUE)
 
   file.create(file.path(outdir, ".here"))
   invisible(outdir)
@@ -452,7 +441,7 @@ run_forest_job <- function(outdir) {
 
 #' Zip the forest reproducibility bundle
 #'
-#' Bundle the reproducibility artifacts (`forest.R`, `utility-functions.R`,
+#' Bundle the reproducibility artifacts (`forest.R`,
 #' `forest.yaml`, `.here`, and `data_spec.yaml` if present) into a single
 #' zip so the user can rerun the plot locally. Uses
 #' [withr::with_dir()] to run `utils::zip()` in `outdir` without a
@@ -469,7 +458,7 @@ run_forest_job <- function(outdir) {
 #' @export
 zip_forest_bundle <- function(outdir, zip_path) {
   zip_path <- normalizePath(zip_path, mustWork = FALSE)
-  files <- c("forest.R", "utility-functions.R", "forest.yaml", ".here", "data_spec.yaml")
+  files <- c("forest.R", "forest.yaml", ".here", "data_spec.yaml")
   files <- files[file.exists(file.path(outdir, files))]
 
   withr::with_dir(outdir, {

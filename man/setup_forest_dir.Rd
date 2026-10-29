@@ -2,7 +2,7 @@
 % Please edit documentation in R/forest_utils.R
 \name{setup_forest_dir}
 \alias{setup_forest_dir}
-\title{Copy the vendored forest.R and utility-functions.R into a working directory}
+\title{Copy the vendored forest.R into a working directory}
 \usage{
 setup_forest_dir(outdir)
 }
@@ -15,9 +15,8 @@ exist.}
 }
 \description{
 Populate \code{outdir} with the standalone forest reproducibility bundle:
-\code{forest.R} (a copy of \code{inst/templates/forest_template.R}),
-\code{utility-functions.R} (a copy of \code{inst/templates/utility-functions.R}),
-and an empty \code{.here} marker so that \code{here::here()} inside \code{forest.R}
-resolves to \code{outdir} rather than climbing to a higher \code{.git}/\code{.Rproj}
-root.
+\code{forest.R} (a copy of \code{inst/templates/forest_template.R}, which calls
+\code{library(MN2mrg)} for its helpers) and an empty \code{.here} marker so that
+\code{here::here()} inside \code{forest.R} resolves to \code{outdir} rather than climbing
+to a higher \code{.git}/\code{.Rproj} root.
 }

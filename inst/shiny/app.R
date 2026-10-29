@@ -4423,113 +4423,27 @@ library(data.table)
 
       s_dep_note <- if (!isTRUE(bundle_template)) {
         if (is_nonmem) {
-'# NOTE: this script depends on vpc_utils_common.R and vpc_utils_nonmem.R
-# living alongside it. Download the "Reproducibility Bundle" (not just this
-# script) to get all of these files together.
+'# NOTE: this script requires the MN2mrg package to be installed.
+# Download the "Reproducibility Bundle" to get the config and any other
+# files it needs together.
 
 '
         } else {
-'# NOTE: this script depends on vpc_opts.rds, mlx_parse_utils.R,
-# vpc_utils_monolix.R, and vpc_utils_common.R living alongside it.
-# Download the "Reproducibility Bundle" (not just this script) to get
-# all of these files together.
+'# NOTE: this script requires the MN2mrg package to be installed and
+# vpc_opts.rds living alongside it. Download the "Reproducibility Bundle"
+# (not just this script) to get all of these files together.
 
 '
         }
       } else ""
 
       s_source <- paste0(
-        'source("vpc_utils_common.R")\n',
-        if (is_nonmem) {
-          'source("vpc_utils_nonmem.R")\n'
-        } else {
-          'source("mlx_parse_utils.R")\nsource("vpc_utils_monolix.R")\n'
-        },
+        'library(MN2mrg)  # ', as.character(utils::packageVersion("MN2mrg")), '\n',
+        '`%||%` <- function(a, b) if (!is.null(a)) a else b\n',
         "\n"
       )
 
-      # These helpers come from the sourced utility files rather than being
-      # duplicated inline, so the downloaded script is byte-for-byte the same
-      # data-prep/simulation/plotting logic as the interactive VPC tab:
-      #   prep_vpc_dataset(), run_vpc_sim(), render_vpc_plot(), build_vpc_plot_spec()
-      s_header <- paste0(s_header_libs, s_dep_note, s_source, '# ── Inlined helpers (kept small; heavy lifting is in the sourced .R files) ──
-`%||%` <- function(a, b) if (!is.null(a)) a else b
-
-# Strip empty-bin rows from each layer so free_x axis limits are per-panel only.
-strip_na_layers <- function(p) {
-  for (k in seq_along(p$layers)) {
-    d <- p$layers[[k]]$data
-    if (!is.data.frame(d) || nrow(d) == 0) next
-    aes_map  <- p$layers[[k]]$mapping
-    get_col  <- function(aes_sym) {
-      if (is.null(aes_sym)) return(NULL)
-      col <- tryCatch(rlang::as_name(aes_sym), error = function(e) NULL)
-      if (!is.null(col) && col %in% names(d)) col else NULL
-    }
-    check_col <- get_col(aes_map[["ymin"]]) %||% get_col(aes_map[["y"]])
-    if (!is.null(check_col)) {
-      new_d <- d[!is.na(d[[check_col]]), , drop = FALSE]
-      if (is.data.frame(new_d)) p$layers[[k]]$data <- new_d
-    }
-  }
-  p
-}
-
-# Top-level so clustermq can serialize it to SGE workers.
-vpc_worker_fn <- function(i, mod_path, dat, seed = NULL) {
-  require(mrgsolve)
-  require(dplyr)
-  if (!is.null(seed)) set.seed(seed + i)
-  mod <- mread(mod_path, quiet = TRUE)
-  loadso(mod)
-  mod %>%
-    data_set(dat) %>%
-    carry_out(ROW) %>%
-    mrgsim(atol = 1e-12, maxsteps = 50000) %>%
-    dplyr::mutate(rep = i)
-}
-
-add_vpc_legend <- function(p, vpc_theme, pi = c(0.05, 0.95)) {
-  obs_pi_col   <- vpc_theme$obs_ci_color     %||% "#e41a1c"
-  obs_med_col  <- vpc_theme$obs_median_color %||% "#377eb8"
-  sim_pi_fill  <- vpc_theme$sim_pi_fill      %||% "steelblue3"
-  sim_med_fill <- vpc_theme$sim_median_fill  %||% "grey60"
-
-  pi_label <- paste0(round(pi[1] * 100, 1), "th/", round(pi[2] * 100, 1), "th")
-
-  d_line <- data.frame(x = NA_real_, y = NA_real_)
-  d_rib  <- data.frame(x = NA_real_, ymin = NA_real_, ymax = NA_real_)
-
-  p +
-    geom_line(data = d_line, aes(x = x, y = y, color = "obs_pi"),
-              linetype = "dashed", na.rm = TRUE) +
-    geom_line(data = d_line, aes(x = x, y = y, color = "obs_med"),
-              linetype = "solid", na.rm = TRUE) +
-    geom_ribbon(data = d_rib, aes(x = x, ymin = ymin, ymax = ymax, fill = "sim_pi"),
-                na.rm = TRUE) +
-    geom_ribbon(data = d_rib, aes(x = x, ymin = ymin, ymax = ymax, fill = "sim_med"),
-                na.rm = TRUE) +
-    scale_color_manual(
-      name   = NULL,
-      breaks = c("obs_pi", "obs_med"),
-      values = c(obs_pi = obs_pi_col, obs_med = obs_med_col),
-      labels = c(obs_pi = paste0("Obs. ", pi_label, " pct"), obs_med = "Obs. median"),
-      guide  = guide_legend(
-        override.aes = list(linetype = c("dashed", "solid"), fill = NA, linewidth = 0.8)
-      )
-    ) +
-    scale_fill_manual(
-      name   = NULL,
-      values = c(sim_pi = sim_pi_fill, sim_med = sim_med_fill),
-      labels = c(sim_pi = paste0("Sim. ", pi_label, " PI"), sim_med = "Sim. median"),
-      guide  = guide_legend(
-        override.aes = list(alpha = 0.6, color = NA, linetype = 0)
-      )
-    ) +
-    theme(legend.position = "bottom")
-}
-
-')
+      s_header <- paste0(s_header_libs, s_dep_note, s_source)
 
       s_prep_nonmem <- '# Dataset preparation: applies IGNORE conditions and column renaming,
 # derives DVID from CMT, drops character columns, adds ROW index.
@@ -5084,13 +4998,12 @@ vpc.yaml <- function(yaml) {
     }
   )
 
-  # Bundles the YAML config, standalone R script, shared utility helpers, and
-  # (for HPC mode) the SGE template into a single zip for reproducibility.
-  # For Monolix, also saves the vpc_opts.rds snapshot so the extracted script
-  # reproduces the interactive prep_vpc_dataset() call without re-parsing the
-  # .mlxtran. Utility .R files are shipped from inst/templates/ (see
-  # inst/templates/*.R which mirror R/*.R); sge.tmpl is shipped from
-  # inst/extdata/.
+  # Bundles the YAML config, standalone R script and (for HPC mode) the SGE
+  # template into a single zip for reproducibility. The script calls
+  # library(MN2mrg) for its helpers. For Monolix, also saves the
+  # vpc_opts.rds snapshot so the extracted script reproduces the interactive
+  # prep_vpc_dataset() call without re-parsing the .mlxtran. sge.tmpl is
+  # shipped from inst/extdata/.
   output$download_vpc_bundle <- downloadHandler(
     filename = function() "vpc_bundle.zip",
     content = function(file) {
@@ -5106,24 +5019,7 @@ vpc.yaml <- function(yaml) {
         build_vpc_script_text(yaml_filename = "vpc_config.yaml", bundle_template = is_hpc),
         file.path(bundle_dir, "vpc_script.R")
       )
-      file.copy(
-        system.file("templates", "vpc_utils_common.R", package = "MN2mrg"),
-        file.path(bundle_dir, "vpc_utils_common.R")
-      )
-      if (is_nonmem) {
-        file.copy(
-          system.file("templates", "vpc_utils_nonmem.R", package = "MN2mrg"),
-          file.path(bundle_dir, "vpc_utils_nonmem.R")
-        )
-      } else {
-        file.copy(
-          system.file("templates", "mlx_parse_utils.R", package = "MN2mrg"),
-          file.path(bundle_dir, "mlx_parse_utils.R")
-        )
-        file.copy(
-          system.file("templates", "vpc_utils_monolix.R", package = "MN2mrg"),
-          file.path(bundle_dir, "vpc_utils_monolix.R")
-        )
+      if (!is_nonmem) {
         saveRDS(build_vpc_monolix_opts(), file.path(bundle_dir, "vpc_opts.rds"))
       }
       if (is_hpc) {
