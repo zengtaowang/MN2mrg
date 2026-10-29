@@ -4179,8 +4179,9 @@ server <- function(input, output, session) {
                          model_data$dvid_map$dvid_identifier))
       } else NULL
 
-      # ignore_columns + cat_covariate_info: Monolix only
-      # ignore_columns: columns Monolix marks as headerType "ignore" — drop before simulation
+      # ignore_columns: Monolix headerType "ignore" columns, or the NONMEM tab's
+      #   "Columns to Ignore" selection — dropped before simulation
+      # cat_covariate_info: Monolix only
       # cat_covariate_info: encoding info needed to convert string/factor categorical
       #   covariates to 0-based integers matching the translated mrgsolve model
       mlx_ignore_cols_yaml <- if (!is_nonmem) {
@@ -4189,6 +4190,8 @@ server <- function(input, output, session) {
           cols <- di$header[di$headerTypes == "ignore"]
           if (length(cols) > 0) as.list(cols) else NULL
         }, error = function(e) NULL)
+      } else if (length(input$vpc_ignore_columns) > 0) {
+        as.list(input$vpc_ignore_columns)
       } else NULL
 
       mlx_cat_cov_yaml <- if (!is_nonmem) {
@@ -4445,74 +4448,6 @@ library(data.table)
 
       s_header <- paste0(s_header_libs, s_dep_note, s_source)
 
-      s_prep_nonmem <- '# Dataset preparation: applies IGNORE conditions and column renaming,
-# derives DVID from CMT, drops character columns, adds ROW index.
-prep_vpc_data <- function(raw_dat, column_map,
-                          nonmem_ignore_conditions = character(0)) {
-  rename_col <- function(df, src, tgt) {
-    if (is.null(src) || src == "") return(df)
-    if (src %in% names(df)) {
-      if (src != tgt) {
-        if (tgt %in% names(df)) df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(src))
-      }
-    } else {
-      idx <- which(toupper(names(df)) == toupper(src))
-      if (length(idx) == 1) {
-        nm <- names(df)[idx]
-        if (tgt %in% names(df) && nm != tgt)
-          df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(nm))
-      }
-    }
-    df
-  }
-
-  for (expr_str in nonmem_ignore_conditions) {
-    parsed <- tryCatch(parse(text = expr_str), error = function(e) NULL)
-    if (is.null(parsed)) next
-    used_cols <- tryCatch(all.vars(parsed), error = function(e) character(0))
-    if (!all(used_cols %in% names(raw_dat))) next
-    raw_dat <- tryCatch(dplyr::filter(raw_dat, !!parsed[[1]]), error = function(e) raw_dat)
-  }
-
-  for (std in c("ID","TIME","DV","AMT","EVID","CMT","RATE","II","ADDL","TAD","BQL")) {
-    src <- column_map[[std]]
-    if (!is.null(src) && nchar(src) > 0) raw_dat <- rename_col(raw_dat, src, std)
-  }
-
-  for (col in c("TIME","DV","AMT","EVID","RATE","II","ADDL"))
-    if (col %in% names(raw_dat) && !is.numeric(raw_dat[[col]]))
-      raw_dat <- dplyr::mutate(raw_dat, !!rlang::sym(col) := as.numeric(.data[[col]]))
-  if ("ID" %in% names(raw_dat) && !is.numeric(raw_dat[["ID"]]))
-    raw_dat <- dplyr::mutate(raw_dat, ID = as.numeric(as.factor(ID)))
-
-  if (!"EVID" %in% names(raw_dat) && "AMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, EVID = dplyr::if_else(is.na(AMT), 0, 1))
-  if (!"CMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, CMT = dplyr::if_else(EVID == 1, 1L, 0L))
-
-  mdv_col <- names(raw_dat)[toupper(names(raw_dat)) == "MDV"]
-  if (length(mdv_col) > 0) {
-    if ("BQL" %in% names(raw_dat)) {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0 & .data[["BQL"]] != 1))
-    } else {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0))
-    }
-  }
-
-  raw_dat <- dplyr::mutate(raw_dat, DVID = as.integer(CMT))
-
-  char_cols <- setdiff(names(raw_dat)[vapply(raw_dat, is.character, logical(1))], "CMT")
-  if (length(char_cols) > 0)
-    raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(char_cols))
-
-  raw_dat %>% dplyr::arrange(ID, TIME) %>% dplyr::ungroup() %>%
-    dplyr::mutate(ROW = dplyr::row_number())
-}
-
-'
-
       s_vpc_top <- 'set_option <- function(lst, name, default = NULL) {
   val <- lst[[name]]
   if (is.null(val)) default else val
@@ -4577,10 +4512,13 @@ vpc.yaml <- function(yaml) {
     na.strings = "."
   ) %>% as_tibble()
 
-  dat <- prep_vpc_data(
-    raw_dat, column_map,
-    nonmem_ignore_conditions = nm_ig_conds
-  )
+  dat <- prep_vpc_dataset(
+    raw_dat, column_map, mode = "nonmem",
+    opts = list(
+      nonmem_ignore_conditions = nm_ig_conds,
+      ignore_columns           = unlist(set_option(vpcspec, "ignore_columns", list()))
+    )
+  )$data
   cat("Dataset loaded:", nrow(dat), "rows (after IGNORE + column prep)\n")
 
 '
@@ -4845,7 +4783,6 @@ vpc.yaml <- function(yaml) {
       )
       script <- paste0(
         s_header,
-        if (is_nonmem) s_prep_nonmem else "",
         s_vpc_top,
         if (is_nonmem) s_data_nonmem else s_data_monolix,
         s_vpc_rest_a,
