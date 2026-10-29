@@ -476,6 +476,8 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
         ## leading-underscore identifier is always a mangled name, never a
         ## real dataset column; never add it to $PARAM
         if (out == "_LAG") return(NULL)
+        ## PHI() is a NONMEM function (normal CDF), never a data item
+        if (out == "PHI") return(NULL)
         if (stringr::str_detect(out, "\\S")) return(out)
       }) %>% unlist() %>% unique()
 
@@ -504,9 +506,12 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
                                    warning = function(w) { message(w$message) }),
                           type = "message")
 
-      out_message <- c(paste(cols, collapse = " "),
-                       "added to $PARAM block",
-                       "Please check default values")
+      out_message <- NULL
+      if (length(cols) > 0) {
+        out_message <- c(paste(cols, collapse = " "),
+                         "added to $PARAM block",
+                         "Please check default values")
+      }
 
       if (any(stringr::str_detect(e, "model build step failed"))) {
         out_message <- c(out_message,
@@ -537,7 +542,10 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
                      "        Y=IPRED*(1+EPS(1) + EPS(2)",
                      "      ENDIF",
                      "would become:",
-                     "      Y=IPRED*(1+EPS(1) + EPS(2) ;")
+                     "      Y=IPRED*(1+EPS(1) + EPS(2) ;",
+                     " ",
+                     "Then remove variables that were assigned only inside the BLQ branch",
+                     "(here F_FLAG and LLOQ) from the $CAPTURE block, or the model will not compile.")
   }
 
   return(list(code = cpp, message = out_message))
