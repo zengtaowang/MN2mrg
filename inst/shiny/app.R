@@ -4179,8 +4179,9 @@ server <- function(input, output, session) {
                          model_data$dvid_map$dvid_identifier))
       } else NULL
 
-      # ignore_columns + cat_covariate_info: Monolix only
-      # ignore_columns: columns Monolix marks as headerType "ignore" — drop before simulation
+      # ignore_columns: Monolix headerType "ignore" columns, or the NONMEM tab's
+      #   "Columns to Ignore" selection — dropped before simulation
+      # cat_covariate_info: Monolix only
       # cat_covariate_info: encoding info needed to convert string/factor categorical
       #   covariates to 0-based integers matching the translated mrgsolve model
       mlx_ignore_cols_yaml <- if (!is_nonmem) {
@@ -4189,6 +4190,8 @@ server <- function(input, output, session) {
           cols <- di$header[di$headerTypes == "ignore"]
           if (length(cols) > 0) as.list(cols) else NULL
         }, error = function(e) NULL)
+      } else if (length(input$vpc_ignore_columns) > 0) {
+        as.list(input$vpc_ignore_columns)
       } else NULL
 
       mlx_cat_cov_yaml <- if (!is_nonmem) {
@@ -4423,316 +4426,27 @@ library(data.table)
 
       s_dep_note <- if (!isTRUE(bundle_template)) {
         if (is_nonmem) {
-'# NOTE: this script depends on vpc_utils_common.R and vpc_utils_nonmem.R
-# living alongside it. Download the "Reproducibility Bundle" (not just this
-# script) to get all of these files together.
+'# NOTE: this script requires the MN2mrg package to be installed.
+# Download the "Reproducibility Bundle" to get the config and any other
+# files it needs together.
 
 '
         } else {
-'# NOTE: this script depends on vpc_opts.rds, mlx_parse_utils.R,
-# vpc_utils_monolix.R, and vpc_utils_common.R living alongside it.
-# Download the "Reproducibility Bundle" (not just this script) to get
-# all of these files together.
+'# NOTE: this script requires the MN2mrg package to be installed and
+# vpc_opts.rds living alongside it. Download the "Reproducibility Bundle"
+# (not just this script) to get all of these files together.
 
 '
         }
       } else ""
 
       s_source <- paste0(
-        'source("vpc_utils_common.R")\n',
-        if (is_nonmem) {
-          'source("vpc_utils_nonmem.R")\n'
-        } else {
-          'source("mlx_parse_utils.R")\nsource("vpc_utils_monolix.R")\n'
-        },
+        'library(MN2mrg)  # ', as.character(utils::packageVersion("MN2mrg")), '\n',
+        '`%||%` <- function(a, b) if (!is.null(a)) a else b\n',
         "\n"
       )
 
-      # These helpers come from the sourced utility files rather than being
-      # duplicated inline, so the downloaded script is byte-for-byte the same
-      # data-prep/simulation/plotting logic as the interactive VPC tab:
-      #   prep_vpc_dataset(), run_vpc_sim(), render_vpc_plot(), build_vpc_plot_spec()
-      s_header <- paste0(s_header_libs, s_dep_note, s_source, '# ── Inlined helpers (kept small; heavy lifting is in the sourced .R files) ──
-`%||%` <- function(a, b) if (!is.null(a)) a else b
-
-# Strip empty-bin rows from each layer so free_x axis limits are per-panel only.
-strip_na_layers <- function(p) {
-  for (k in seq_along(p$layers)) {
-    d <- p$layers[[k]]$data
-    if (!is.data.frame(d) || nrow(d) == 0) next
-    aes_map  <- p$layers[[k]]$mapping
-    get_col  <- function(aes_sym) {
-      if (is.null(aes_sym)) return(NULL)
-      col <- tryCatch(rlang::as_name(aes_sym), error = function(e) NULL)
-      if (!is.null(col) && col %in% names(d)) col else NULL
-    }
-    check_col <- get_col(aes_map[["ymin"]]) %||% get_col(aes_map[["y"]])
-    if (!is.null(check_col)) {
-      new_d <- d[!is.na(d[[check_col]]), , drop = FALSE]
-      if (is.data.frame(new_d)) p$layers[[k]]$data <- new_d
-    }
-  }
-  p
-}
-
-# Top-level so clustermq can serialize it to SGE workers.
-vpc_worker_fn <- function(i, mod_path, dat, seed = NULL) {
-  require(mrgsolve)
-  require(dplyr)
-  if (!is.null(seed)) set.seed(seed + i)
-  mod <- mread(mod_path, quiet = TRUE)
-  loadso(mod)
-  mod %>%
-    data_set(dat) %>%
-    carry_out(ROW) %>%
-    mrgsim(atol = 1e-12, maxsteps = 50000) %>%
-    dplyr::mutate(rep = i)
-}
-
-add_vpc_legend <- function(p, vpc_theme, pi = c(0.05, 0.95)) {
-  obs_pi_col   <- vpc_theme$obs_ci_color     %||% "#e41a1c"
-  obs_med_col  <- vpc_theme$obs_median_color %||% "#377eb8"
-  sim_pi_fill  <- vpc_theme$sim_pi_fill      %||% "steelblue3"
-  sim_med_fill <- vpc_theme$sim_median_fill  %||% "grey60"
-
-  pi_label <- paste0(round(pi[1] * 100, 1), "th/", round(pi[2] * 100, 1), "th")
-
-  d_line <- data.frame(x = NA_real_, y = NA_real_)
-  d_rib  <- data.frame(x = NA_real_, ymin = NA_real_, ymax = NA_real_)
-
-  p +
-    geom_line(data = d_line, aes(x = x, y = y, color = "obs_pi"),
-              linetype = "dashed", na.rm = TRUE) +
-    geom_line(data = d_line, aes(x = x, y = y, color = "obs_med"),
-              linetype = "solid", na.rm = TRUE) +
-    geom_ribbon(data = d_rib, aes(x = x, ymin = ymin, ymax = ymax, fill = "sim_pi"),
-                na.rm = TRUE) +
-    geom_ribbon(data = d_rib, aes(x = x, ymin = ymin, ymax = ymax, fill = "sim_med"),
-                na.rm = TRUE) +
-    scale_color_manual(
-      name   = NULL,
-      breaks = c("obs_pi", "obs_med"),
-      values = c(obs_pi = obs_pi_col, obs_med = obs_med_col),
-      labels = c(obs_pi = paste0("Obs. ", pi_label, " pct"), obs_med = "Obs. median"),
-      guide  = guide_legend(
-        override.aes = list(linetype = c("dashed", "solid"), fill = NA, linewidth = 0.8)
-      )
-    ) +
-    scale_fill_manual(
-      name   = NULL,
-      values = c(sim_pi = sim_pi_fill, sim_med = sim_med_fill),
-      labels = c(sim_pi = paste0("Sim. ", pi_label, " PI"), sim_med = "Sim. median"),
-      guide  = guide_legend(
-        override.aes = list(alpha = 0.6, color = NA, linetype = 0)
-      )
-    ) +
-    theme(legend.position = "bottom")
-}
-
-')
-
-      s_prep_nonmem <- '# Dataset preparation: applies IGNORE conditions and column renaming,
-# derives DVID from CMT, drops character columns, adds ROW index.
-prep_vpc_data <- function(raw_dat, column_map,
-                          nonmem_ignore_conditions = character(0)) {
-  rename_col <- function(df, src, tgt) {
-    if (is.null(src) || src == "") return(df)
-    if (src %in% names(df)) {
-      if (src != tgt) {
-        if (tgt %in% names(df)) df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(src))
-      }
-    } else {
-      idx <- which(toupper(names(df)) == toupper(src))
-      if (length(idx) == 1) {
-        nm <- names(df)[idx]
-        if (tgt %in% names(df) && nm != tgt)
-          df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(nm))
-      }
-    }
-    df
-  }
-
-  for (expr_str in nonmem_ignore_conditions) {
-    parsed <- tryCatch(parse(text = expr_str), error = function(e) NULL)
-    if (is.null(parsed)) next
-    used_cols <- tryCatch(all.vars(parsed), error = function(e) character(0))
-    if (!all(used_cols %in% names(raw_dat))) next
-    raw_dat <- tryCatch(dplyr::filter(raw_dat, !!parsed[[1]]), error = function(e) raw_dat)
-  }
-
-  for (std in c("ID","TIME","DV","AMT","EVID","CMT","RATE","II","ADDL","TAD","BQL")) {
-    src <- column_map[[std]]
-    if (!is.null(src) && nchar(src) > 0) raw_dat <- rename_col(raw_dat, src, std)
-  }
-
-  for (col in c("TIME","DV","AMT","EVID","RATE","II","ADDL"))
-    if (col %in% names(raw_dat) && !is.numeric(raw_dat[[col]]))
-      raw_dat <- dplyr::mutate(raw_dat, !!rlang::sym(col) := as.numeric(.data[[col]]))
-  if ("ID" %in% names(raw_dat) && !is.numeric(raw_dat[["ID"]]))
-    raw_dat <- dplyr::mutate(raw_dat, ID = as.numeric(as.factor(ID)))
-
-  if (!"EVID" %in% names(raw_dat) && "AMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, EVID = dplyr::if_else(is.na(AMT), 0, 1))
-  if (!"CMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, CMT = dplyr::if_else(EVID == 1, 1L, 0L))
-
-  mdv_col <- names(raw_dat)[toupper(names(raw_dat)) == "MDV"]
-  if (length(mdv_col) > 0) {
-    if ("BQL" %in% names(raw_dat)) {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0 & .data[["BQL"]] != 1))
-    } else {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0))
-    }
-  }
-
-  raw_dat <- dplyr::mutate(raw_dat, DVID = as.integer(CMT))
-
-  char_cols <- setdiff(names(raw_dat)[vapply(raw_dat, is.character, logical(1))], "CMT")
-  if (length(char_cols) > 0)
-    raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(char_cols))
-
-  raw_dat %>% dplyr::arrange(ID, TIME) %>% dplyr::ungroup() %>%
-    dplyr::mutate(ROW = dplyr::row_number())
-}
-
-'
-
-      # Resolve ADM->CMT map from the loaded structural model at download time
-      dl_adm_map_str <- tryCatch({
-        sm_path  <- getStructuralModel()
-        sm_lines <- readLines(resolve_lib_model_path(sm_path))
-        clean <- stringr::str_squish(stringr::str_replace(sm_lines, ";.*$", ""))
-        m     <- unlist(extract_adm_to_target(clean))
-        if (length(m) > 0) {
-          pairs <- paste0('"', names(m), '" = "', unname(m), '"', collapse = ", ")
-          paste0("c(", pairs, ")")
-        } else "c()"
-      }, error = function(e) "c()")
-
-      s_prep_monolix <- paste0(
-'# Dataset preparation: column renaming, MDV filtering,
-# DVID handling (including string -> numeric conversion), ADM->CMT mapping.
-prep_vpc_data <- function(raw_dat, column_map, dvid_map = NULL,
-                          ignore_cols = NULL, cat_cov_info = NULL) {
-  rename_col <- function(df, src, tgt) {
-    if (is.null(src) || src == "") return(df)
-    if (src %in% names(df)) {
-      if (src != tgt) {
-        if (tgt %in% names(df)) df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(src))
-      }
-    } else {
-      idx <- which(toupper(names(df)) == toupper(src))
-      if (length(idx) == 1) {
-        nm <- names(df)[idx]
-        if (tgt %in% names(df) && nm != tgt)
-          df <- dplyr::select(df, -dplyr::all_of(tgt))
-        df <- dplyr::rename(df, !!tgt := !!rlang::sym(nm))
-      }
-    }
-    df
-  }
-
-  for (std in c("ID","TIME","DV","AMT","EVID","DVID","RATE","II","ADDL","TAD","BQL")) {
-    src <- column_map[[std]]
-    if (!is.null(src) && nchar(src) > 0) raw_dat <- rename_col(raw_dat, src, std)
-  }
-
-  # Drop columns Monolix marks as "ignore" (embedded from headerTypes at download time)
-  if (length(ignore_cols) > 0) {
-    drop <- intersect(ignore_cols, names(raw_dat))
-    if (length(drop) > 0) raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(drop))
-  }
-
-  for (col in c("TIME","DV","AMT","EVID","RATE","II","ADDL"))
-    if (col %in% names(raw_dat) && !is.numeric(raw_dat[[col]]))
-      raw_dat <- dplyr::mutate(raw_dat,
-                               !!rlang::sym(col) := as.numeric(.data[[col]]))
-  if ("ID" %in% names(raw_dat) && !is.numeric(raw_dat[["ID"]]))
-    raw_dat <- dplyr::mutate(raw_dat, ID = as.numeric(as.factor(ID)))
-
-  if (!"EVID" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat,
-      EVID = if ("AMT" %in% names(raw_dat)) dplyr::if_else(is.na(AMT), 0, 1) else 0L)
-
-  mdv_col <- names(raw_dat)[toupper(names(raw_dat)) == "MDV"]
-  if (length(mdv_col) > 0) {
-    if ("BQL" %in% names(raw_dat)) {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0 & .data[["BQL"]] != 1))
-    } else {
-      raw_dat <- dplyr::filter(raw_dat, !(.data[[mdv_col]] == 1 & EVID == 0))
-    }
-  }
-
-  # ADM -> CMT mapping (resolved from structural model at script generation time)
-  adm_cmt_lookup <- ', dl_adm_map_str, '
-  adm_col <- names(raw_dat)[toupper(names(raw_dat)) == "ADM"]
-  if (length(adm_col) == 1 && length(adm_cmt_lookup) > 0) {
-    raw_dat <- raw_dat %>%
-      dplyr::mutate(CMT = adm_cmt_lookup[as.character(.data[[adm_col]])])
-
-    unmapped_dose <- is.na(raw_dat$CMT) & raw_dat$EVID == 1
-    if (any(unmapped_dose, na.rm = TRUE))
-      raw_dat <- raw_dat[!unmapped_dose, ]
-
-    raw_dat <- raw_dat %>%
-      dplyr::mutate(CMT = dplyr::if_else(is.na(CMT), "OBS", CMT))
-  }
-  if (!"CMT" %in% names(raw_dat))
-    raw_dat <- dplyr::mutate(raw_dat, CMT = dplyr::if_else(EVID == 1, 1, 0))
-
-  if (!"DVID" %in% names(raw_dat)) {
-    raw_dat <- dplyr::mutate(raw_dat, DVID = dplyr::if_else(EVID == 1, 0, 1))
-  } else if (!is.null(dvid_map) && length(dvid_map) > 0 &&
-             is.character(raw_dat$DVID)) {
-    dvid_ids <- names(dvid_map)
-    raw_dat  <- dplyr::mutate(raw_dat,
-      DVID = dplyr::coalesce(match(as.character(DVID), dvid_ids), 0L))
-  } else {
-    raw_dat <- dplyr::mutate(raw_dat,
-      DVID = dplyr::if_else(is.na(DVID), 0, as.numeric(DVID)))
-  }
-
-  # Categorical covariate encoding (info embedded from getCovariateInformation()
-  # at download time).  Must run BEFORE the char_cols drop below.
-  if (!is.null(cat_cov_info)) {
-    for (cov_name in names(cat_cov_info)) {
-      entry <- cat_cov_info[[cov_name]]
-      if (is.null(entry$type)) next
-
-      if (entry$type == "transformed") {
-        # Derived column (e.g. tSPECIES): create from source column using
-        # src_to_grp map and ordered group list (reference=0, others 1,2,...).
-        src_col <- entry$source_col
-        if (!src_col %in% names(raw_dat)) next
-        ordered    <- unlist(entry$ordered)
-        src_to_grp <- unlist(entry$src_to_grp)
-        grp_to_int <- stats::setNames(seq_along(ordered) - 1L, ordered)
-        raw_dat[[cov_name]] <-
-          grp_to_int[src_to_grp[as.character(raw_dat[[src_col]])]]
-
-      } else if (entry$type == "catcov") {
-        # Raw categorical column: encode to 0-based integer.
-        if (!cov_name %in% names(raw_dat)) next
-        ordered     <- unlist(entry$ordered)
-        cat_enc     <- stats::setNames(seq_along(ordered) - 1L, ordered)
-        raw_dat[[cov_name]] <- cat_enc[as.character(raw_dat[[cov_name]])]
-      }
-    }
-  }
-
-  char_cols <- setdiff(names(raw_dat)[vapply(raw_dat, is.character, logical(1))], "CMT")
-  if (length(char_cols) > 0)
-    raw_dat <- dplyr::select(raw_dat, -dplyr::all_of(char_cols))
-
-  raw_dat %>% dplyr::arrange(ID, TIME) %>% dplyr::ungroup() %>%
-    dplyr::mutate(ROW = dplyr::row_number())
-}
-
-'
-      )
+      s_header <- paste0(s_header_libs, s_dep_note, s_source)
 
       s_vpc_top <- 'set_option <- function(lst, name, default = NULL) {
   val <- lst[[name]]
@@ -4798,22 +4512,25 @@ vpc.yaml <- function(yaml) {
     na.strings = "."
   ) %>% as_tibble()
 
-  dat <- prep_vpc_data(
-    raw_dat, column_map,
-    nonmem_ignore_conditions = nm_ig_conds
-  )
+  dat <- prep_vpc_dataset(
+    raw_dat, column_map, mode = "nonmem",
+    opts = list(
+      nonmem_ignore_conditions = nm_ig_conds,
+      ignore_columns           = unlist(set_option(vpcspec, "ignore_columns", list()))
+    )
+  )$data
   cat("Dataset loaded:", nrow(dat), "rows (after IGNORE + column prep)\n")
 
 '
 
-      s_data_monolix <- '  raw_dat      <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  dvid_map     <- set_option(vpcspec, "dvid_map",           NULL)
-  ignore_cols  <- unlist(set_option(vpcspec, "ignore_columns",     list()))
-  cat_cov_info <- set_option(vpcspec, "cat_covariate_info", NULL)
-  dat <- prep_vpc_data(raw_dat, column_map,
-                       dvid_map    = dvid_map,
-                       ignore_cols = ignore_cols,
-                       cat_cov_info = cat_cov_info)
+      s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
+  opts_file <- file.path(dirname(normalizePath(yaml)), "vpc_opts.rds")
+  if (!file.exists(opts_file)) {
+    cat(paste0("\nFile ", opts_file, " does not exist!\n\n"))
+    return(invisible(NULL))
+  }
+  dat <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
+                          opts = readRDS(opts_file))$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
 
   filters <- map(vpcspec$filters, ~parse(text = .x))
@@ -5066,7 +4783,6 @@ vpc.yaml <- function(yaml) {
       )
       script <- paste0(
         s_header,
-        if (is_nonmem) s_prep_nonmem else s_prep_monolix,
         s_vpc_top,
         if (is_nonmem) s_data_nonmem else s_data_monolix,
         s_vpc_rest_a,
@@ -5084,13 +4800,12 @@ vpc.yaml <- function(yaml) {
     }
   )
 
-  # Bundles the YAML config, standalone R script, shared utility helpers, and
-  # (for HPC mode) the SGE template into a single zip for reproducibility.
-  # For Monolix, also saves the vpc_opts.rds snapshot so the extracted script
-  # reproduces the interactive prep_vpc_dataset() call without re-parsing the
-  # .mlxtran. Utility .R files are shipped from inst/templates/ (see
-  # inst/templates/*.R which mirror R/*.R); sge.tmpl is shipped from
-  # inst/extdata/.
+  # Bundles the YAML config, standalone R script and (for HPC mode) the SGE
+  # template into a single zip for reproducibility. The script calls
+  # library(MN2mrg) for its helpers. For Monolix, also saves the
+  # vpc_opts.rds snapshot so the extracted script reproduces the interactive
+  # prep_vpc_dataset() call without re-parsing the .mlxtran. sge.tmpl is
+  # shipped from inst/extdata/.
   output$download_vpc_bundle <- downloadHandler(
     filename = function() "vpc_bundle.zip",
     content = function(file) {
@@ -5106,24 +4821,7 @@ vpc.yaml <- function(yaml) {
         build_vpc_script_text(yaml_filename = "vpc_config.yaml", bundle_template = is_hpc),
         file.path(bundle_dir, "vpc_script.R")
       )
-      file.copy(
-        system.file("templates", "vpc_utils_common.R", package = "MN2mrg"),
-        file.path(bundle_dir, "vpc_utils_common.R")
-      )
-      if (is_nonmem) {
-        file.copy(
-          system.file("templates", "vpc_utils_nonmem.R", package = "MN2mrg"),
-          file.path(bundle_dir, "vpc_utils_nonmem.R")
-        )
-      } else {
-        file.copy(
-          system.file("templates", "mlx_parse_utils.R", package = "MN2mrg"),
-          file.path(bundle_dir, "mlx_parse_utils.R")
-        )
-        file.copy(
-          system.file("templates", "vpc_utils_monolix.R", package = "MN2mrg"),
-          file.path(bundle_dir, "vpc_utils_monolix.R")
-        )
+      if (!is_nonmem) {
         saveRDS(build_vpc_monolix_opts(), file.path(bundle_dir, "vpc_opts.rds"))
       }
       if (is_hpc) {

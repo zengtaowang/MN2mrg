@@ -17,7 +17,7 @@ file already exist).}
 \code{zip_path}, invisibly.
 }
 \description{
-Bundle the reproducibility artifacts (\code{forest.R}, \code{utility-functions.R},
+Bundle the reproducibility artifacts (\code{forest.R},
 \code{forest.yaml}, \code{.here}, and \code{data_spec.yaml} if present) into a single
 zip so the user can rerun the plot locally. Uses
 \code{\link[withr:with_dir]{withr::with_dir()}} to run \code{utils::zip()} in \code{outdir} without a
