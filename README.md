@@ -21,7 +21,7 @@ post-estimation workflow:
   running the app (no job scheduler required)
 * Forest plots for covariate effects
 * Reproducibility bundles (download a `.zip` that regenerates the VPC
-  off-app for submission archives)
+  off-app for submission archives; the script needs MN2mrg installed)
 
 ## Status
 
@@ -60,32 +60,45 @@ run_app()
 
 ## Programmatic use
 
-Every button in the Shiny app is a thin wrapper around an exported
-package function. To script a translation, embed a VPC in a Quarto
-report, or run a large sensitivity sweep from the command line, call
-the functions directly:
+The translation functions can be called directly, for example to
+translate a model in a batch job. The Dosing Simulation and Sensitivity
+Analysis tabs are app-only and have no package function.
+
+### Translate a NONMEM model
 
 ```r
 library(MN2mrg)
 
-# NONMEM: writes an mrgsolve .cpp
-res <- nonmem2mrgsolve("path/to/run.mod")
+res <- nonmem2mrgsolve("path/to/run.mod")   # finds run.ext next to the .mod
 writeLines(res$code, "run.cpp")
-
-# VPC: prep + simulate + render
-prepped <- prep_vpc_dataset(
-  data       = data.table::fread("obs.csv", na.strings = "."),
-  column_map = list(ID = "ID", TIME = "TIME", DV = "DV",
-                    AMT = "AMT", EVID = "EVID", CMT = "CMT"),
-  mode       = "nonmem",
-  opts       = list(nonmem_ignore_conditions =
-                      parse_nonmem_ignore(readLines("run.mod"))$conditions)
-)
-sim <- run_vpc_sim("run.cpp", prepped$data, n_rep = 500L, seed = 42L)
-p   <- render_vpc_plot(sim$obs_df, sim$sim_df,
-                       build_vpc_plot_spec(list(title = "VPC: run")))
-ggplot2::ggsave("vpc.png", p, width = 7, height = 5, dpi = 300)
+cat(res$message, sep = "\n")                 # warnings, e.g. PHI() passed through
 ```
+
+Models that use the M3 method (`PHI()`) are translated with `PHI()` left
+in place, so the BQL branch needs a manual edit before the `.cpp`
+compiles. `res$message` says when this applies.
+
+### Translate a Monolix project
+
+```r
+res <- monolix2mrgsolve(
+  project_path = "path/to/run.mlxtran",
+  monolix_path = "/opt/monolix/MonolixSuite2024R1"
+)
+writeLines(res$code, "run.cpp")
+```
+
+This needs a MonolixSuite installation (see Installation). Covariate and
+regressor values written into `$PARAM` default to 1 (continuous) and 0
+(categorical); pass `cont_covariate_values`, `cat_covariate_values` or
+`regressor_values` to change them.
+
+### Downloaded bundles
+
+The VPC and forest-plot tabs can download a script that regenerates the
+result outside the app. Both scripts call `library(MN2mrg)`, so the package
+must be installed on the machine that runs them. The VPC script records
+the MN2mrg version it was generated with in a comment next to that call.
 
 ## Development
 
@@ -101,7 +114,7 @@ MN2mrg/
 ├── R/                          Exported package functions
 ├── inst/
 │   ├── shiny/app.R              Shiny app source (run_app() launches this)
-│   ├── templates/               Files shipped inside the reproducibility bundle
+│   ├── templates/               forest_template.R, copied into the forest bundle
 │   └── extdata/
 │       ├── monolix_library_models/  Monolix PK library structural models
 │       └── sge.tmpl             SGE template, retained but unused (HPC off)
