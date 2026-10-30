@@ -83,7 +83,7 @@ compiles. `res$message` says when this applies.
 ```r
 res <- monolix2mrgsolve(
   project_path = "path/to/run.mlxtran",
-  monolix_path = "/opt/monolix/MonolixSuite2024R1"
+  monolix_path = "/path/to/MonolixSuite2024R1"
 )
 writeLines(res$code, "run.cpp")
 ```

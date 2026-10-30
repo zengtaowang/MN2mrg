@@ -16,7 +16,7 @@ monolix2mrgsolve(
 \item{project_path}{Character. Path to the \code{.mlxtran} project file.}
 
 \item{monolix_path}{Character. Path to the MonolixSuite installation
-directory, e.g. \code{"/opt/monolix/MonolixSuite2024R1"}.}
+directory, e.g. \code{"/path/to/MonolixSuite2024R1"}.}
 
 \item{regressor_values, cont_covariate_values, cat_covariate_values}{Numeric
 vectors of values for \verb{$PARAM}, in the order of

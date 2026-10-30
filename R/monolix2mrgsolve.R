@@ -12,7 +12,7 @@
 #'
 #' @param project_path Character. Path to the `.mlxtran` project file.
 #' @param monolix_path Character. Path to the MonolixSuite installation
-#'   directory, e.g. `"/opt/monolix/MonolixSuite2024R1"`.
+#'   directory, e.g. `"/path/to/MonolixSuite2024R1"`.
 #' @param regressor_values,cont_covariate_values,cat_covariate_values Numeric
 #'   vectors of values for `$PARAM`, in the order of
 #'   `components$regressors`, `components$cont_covariate_names` and
