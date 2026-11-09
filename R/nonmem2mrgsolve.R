@@ -451,7 +451,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
   if (!is.null(varErr))  cpp <- c(cpp, "$CAPTURE", varErr)
 
   ## write out mrgsolve file and compile it to check for errors
-  tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+  tmpFile <- tempfile("mod", fileext = ".cpp")
   write(cpp, file = tmpFile, append = FALSE, sep = "\n")
   e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                error = function(e) { message(e$message) },
@@ -499,7 +499,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
       if (!is.null(varErr))  cpp <- c(cpp, "$CAPTURE", varErr)
       cpp <- paste(cpp, collapse = "\n")
 
-      tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999, size = 1), ".cpp"))
+      tmpFile <- tempfile("mod", fileext = ".cpp")
       write(cpp, file = tmpFile, append = FALSE, sep = "\n")
       e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                    error = function(e) { message(e$message) },
@@ -567,7 +567,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
 #' @keywords internal
 compile_cpp <- function(cpp) {
 
-  tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+  tmpFile <- tempfile("mod", fileext = ".cpp")
   write(cpp, file = tmpFile, append = FALSE, sep = "\n")
   e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                error = function(e) { message(e$message) },
@@ -663,7 +663,7 @@ verify_translation <- function(model, dataset, table, table2 = NULL, filters,
   if (file.exists(model)) {
     tmpFile <- model
   } else {
-    tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+    tmpFile <- tempfile("mod", fileext = ".cpp")
     write(model, file = tmpFile, append = FALSE, sep = "\n")
   }
 
