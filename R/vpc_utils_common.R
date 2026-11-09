@@ -226,7 +226,8 @@ build_vpc_spec <- function(params = list()) {
 #'   case), `scales`, `logY`, `predCorr`, `pi`, `ci`, `bins`, `custom_bins`,
 #'   `obsdv`, `pici`, `censor`, `smooth`, `x_label`, `y_label`, `xlim`,
 #'   `ylim`, `x_breaks`, `y_breaks`, `pi_fill`, `med_fill`, `axis_text_size`,
-#'   `axis_title_size`, `strip_text_size`, `show_legend`.
+#'   `axis_title_size`, `strip_text_size`, `show_legend`, `strip_labels`
+#'   (named list: stratification variable to a list of `old level = new label`).
 #'
 #' @return Named list with all per-plot schema fields populated.
 #'
@@ -261,7 +262,8 @@ build_vpc_plot_spec <- function(plot_params = list()) {
     axis_text_size  = plot_params$axis_text_size  %||% 11,
     axis_title_size = plot_params$axis_title_size %||% 11,
     strip_text_size = plot_params$strip_text_size %||% 11,
-    show_legend     = isTRUE(plot_params$show_legend %||% TRUE)
+    show_legend     = isTRUE(plot_params$show_legend %||% TRUE),
+    strip_labels    = plot_params$strip_labels
   )
 }
 
@@ -602,6 +604,106 @@ run_vpc_sim <- function(mod_path, data, n_rep, n_jobs = NULL,
 }
 
 
+#' Select the rows of one DVID for plotting
+#'
+#' Reduce the frames returned by [run_vpc_sim()] to what [render_vpc_plot()]
+#' needs for a single plot: dosing rows (`EVID != 0`) and rows with a missing
+#' observation or simulated value are dropped, and `dvid` is selected when
+#' supplied. The `vpc` package stops with an error on missing values, so this
+#' is the single place they are removed.
+#'
+#' @param obs_df,sim_df Data frames from [run_vpc_sim()] (`obs_df`, `sim_df`).
+#' @param dvid Numeric or `NULL`. DVID to keep; `NULL` keeps all.
+#' @param sim_col Character. Simulated-value column, `"Y"` by default.
+#'
+#' @return List with filtered `obs` and `sim` data frames.
+#'
+#' @export
+filter_vpc_frames <- function(obs_df, sim_df, dvid = NULL, sim_col = "Y") {
+  obs <- obs_df
+  sim <- sim_df
+  if ("EVID" %in% names(obs)) obs <- dplyr::filter(obs, .data$EVID == 0)
+  if (!is.null(dvid)) {
+    obs <- dplyr::filter(obs, .data$DVID == dvid)
+    sim <- dplyr::filter(sim, .data$DVID == dvid)
+  }
+  list(
+    obs = dplyr::filter(obs, !is.na(.data$DV)),
+    sim = dplyr::filter(sim, !is.na(.data[[sim_col]]))
+  )
+}
+
+
+#' Build a [render_vpc_plot()] spec from one plot of a `vpc.yaml` config
+#'
+#' Translate the plot entry `plot_name` of a parsed VPC YAML (as written by
+#' the app's "VPC config" download) into the spec list [render_vpc_plot()]
+#' takes. The YAML encodes stratification as `NULL` (categorical), a numeric
+#' vector (customised breaks), or `"median"` / `"quartiles"`; these become the
+#' `type`/`method`/`breaks` form `render_vpc_plot()` expects. Page-level
+#' options (theme sizes, fills) are read from the top level of the YAML.
+#'
+#' @param vpcspec Named list from [yaml::read_yaml()].
+#' @param plot_name Character. Name of the entry under `vpcspec$plots`.
+#'
+#' @return A spec list as returned by [build_vpc_plot_spec()], plus `dvid`.
+#'
+#' @export
+vpc_spec_from_yaml <- function(vpcspec, plot_name) {
+  pl  <- vpcspec$plots[[plot_name]]
+  opt <- function(name, default = NULL) pl[[name]] %||% default
+
+  strat_in <- opt("stratify", list())
+  stratify <- list()
+  for (v in names(strat_in)) {
+    x <- strat_in[[v]]
+    stratify[[v]] <- if (is.null(x)) {
+      list(type = "categorical")
+    } else if (is.numeric(x) || is.list(x)) {
+      list(type = "continuous", method = "customized", breaks = as.numeric(unlist(x)))
+    } else if (identical(x, "quartiles")) {
+      list(type = "continuous", method = "quartile")
+    } else {
+      list(type = "continuous", method = "median")
+    }
+  }
+
+  bins <- opt("bins", "data")
+  if (is.list(bins)) bins <- as.numeric(unlist(bins))
+
+  spec <- build_vpc_plot_spec(list(
+    title       = opt("title", ""),
+    time_column = opt("time_column", "TIME"),
+    sim_column  = opt("sim_column", "Y"),
+    lloq        = opt("lloq"),
+    stratify    = stratify,
+    scales      = opt("scales", "free_x"),
+    logY        = opt("logY", FALSE),
+    predCorr    = opt("predCorr", FALSE),
+    smooth      = opt("smooth", TRUE),
+    pi          = unlist(opt("pi", c(0.05, 0.95))),
+    ci          = unlist(opt("ci", c(0.025, 0.975))),
+    bins        = bins,
+    censor      = opt("censor", FALSE),
+    x_label     = opt("x_label"),
+    y_label     = opt("y_label"),
+    xlim        = unlist(opt("xlim")),
+    ylim        = unlist(opt("ylim")),
+    x_breaks    = unlist(opt("x_breaks")),
+    y_breaks    = unlist(opt("y_breaks")),
+    pi_fill     = vpcspec$pi_fill  %||% "steelblue3",
+    med_fill    = vpcspec$med_fill %||% "grey60",
+    axis_text_size  = vpcspec[["axis.text"]]  %||% 11,
+    axis_title_size = vpcspec[["axis.title"]] %||% 11,
+    strip_text_size = vpcspec[["strip.text"]] %||% 11,
+    show_legend = opt("show_legend", TRUE),
+    strip_labels = opt("strip_labels")
+  ))
+  spec$dvid <- opt("dvid")
+  spec
+}
+
+
 #' Render a VPC ggplot from prepared observation and simulation data
 #'
 #' Produce a single VPC ggplot from pre-filtered observation and simulation
@@ -729,6 +831,22 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
 
   if (length(stratify_final) == 0) stratify_final <- NULL
 
+  # Strip-label overrides apply after binning/decoding, so keys are the
+  # displayed level strings.
+  for (sv in names(vpc_spec$strip_labels)) {
+    eff_col <- if (paste0(sv, "_f") %in% names(obs)) paste0(sv, "_f") else sv
+    if (!eff_col %in% names(obs)) next
+    lbl_map <- unlist(vpc_spec$strip_labels[[sv]])
+    relabel <- function(x) {
+      x   <- as.character(x)
+      hit <- x %in% names(lbl_map)
+      x[hit] <- unname(lbl_map[x[hit]])
+      x
+    }
+    obs[[eff_col]] <- relabel(obs[[eff_col]])
+    sim[[eff_col]] <- relabel(sim[[eff_col]])
+  }
+
   # vpc's own guess_software()/filter_dv() would otherwise re-drop MDV!=0 rows
   # (e.g. preserved BQL rows) once it classifies this as NONMEM-format data.
   # EVID is left in place so vpc's EVID==0 dosing-row exclusion still applies.
@@ -790,7 +908,6 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
       sim_cols  = list(idv = time_col, dv = sim_col, pred = "PRED", sim = "rep"),
       obs_cols  = list(idv = time_col, dv = "DV",    pred = "PRED"),
       stratify  = stratify_final,
-      show      = list(obs_dv = TRUE, obs_ci = TRUE),
       lloq      = lloq_val + 0.01,
       vpc_theme = vpc_theme,
       ylab      = "Probability of <LLOQ",

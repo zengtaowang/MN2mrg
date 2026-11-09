@@ -4466,16 +4466,7 @@ vpc.yaml <- function(yaml) {
   type       <- set_option(vpcspec, "output_filetype", "png")
   width      <- set_option(vpcspec, "width",  7)
   height     <- set_option(vpcspec, "height", 5)
-  axis.text  <- set_option(vpcspec, "axis.text",  11)
-  axis.title <- set_option(vpcspec, "axis.title", 11)
-  strip.text <- set_option(vpcspec, "strip.text", 11)
   column_map <- set_option(vpcspec, "column_map", list())
-
-  vpc_theme <- new_vpc_theme(list(
-    sim_pi_fill     = set_option(vpcspec, "pi_fill", "steelblue3"),
-    sim_median_fill = set_option(vpcspec, "med_fill", "grey60"),
-    loq_color       = "#999999"
-  ))
 
   out_dir <- set_option(vpcspec, "output_directory", ".")
   if (out_dir == ".") out_dir <- dirname(normalizePath(yaml))
@@ -4512,13 +4503,14 @@ vpc.yaml <- function(yaml) {
     na.strings = "."
   ) %>% as_tibble()
 
-  dat <- prep_vpc_dataset(
+  prep <- prep_vpc_dataset(
     raw_dat, column_map, mode = "nonmem",
     opts = list(
       nonmem_ignore_conditions = nm_ig_conds,
       ignore_columns           = unlist(set_option(vpcspec, "ignore_columns", list()))
     )
-  )$data
+  )
+  dat <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after IGNORE + column prep)\n")
 
 '
@@ -4529,8 +4521,9 @@ vpc.yaml <- function(yaml) {
     cat(paste0("\nFile ", opts_file, " does not exist!\n\n"))
     return(invisible(NULL))
   }
-  dat <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
-                          opts = readRDS(opts_file))$data
+  prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
+                           opts = readRDS(opts_file))
+  dat  <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
 
   filters <- map(vpcspec$filters, ~parse(text = .x))
@@ -4561,211 +4554,52 @@ vpc.yaml <- function(yaml) {
   carry <- unique(carry[carry %in% names(dat)])
 
   cat("Simulation input:", nrow(dat), "rows\n")
-
-  mod  <- mread(vpcspec$input_model, quiet = TRUE)
-  pred <- mod %>% zero_re() %>% data_set(dat) %>%
-    carry_out(ROW) %>% mrgsim_df()
-
   cat("Running", vpcspec$nRep, "simulations...\n")
-'
 
+'
       s_vpc_sim <- if (dl_parallel_mode == "hpc") {
         paste0(
-          '  n_jobs <- min(', dl_n_jobs, 'L, as.integer(vpcspec$nRep))\n',
-          '  # SGE worker logs. sge.tmpl defaults {{ log_file }} to /dev/null,\n',
-          '  # so without an explicit path a compute-node-side failure leaves\n',
-          '  # no trace anywhere. Kept beside the model, which the workers must\n',
-          '  # already be able to read, so it is cluster-visible by construction.\n',
-          '  log_dir <- file.path(dirname(vpcspec$input_model), "vpc_sge_logs")\n',
-          '  dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)\n',
-          '  sim_list <- Q(\n',
-          '    fun      = vpc_worker_fn,\n',
-          '    i        = seq_len(vpcspec$nRep),\n',
-          '    n_jobs   = n_jobs,\n',
-          '    const    = list(mod_path = vpcspec$input_model, dat = dat, seed = ', dl_seed_str, '),\n',
-          '    template = list(log_file = file.path(log_dir, "vpc_worker_$TASK_ID.log"))\n',
+          '  # SGE worker logs go beside the model, which the workers must already\n',
+          '  # be able to read, so the directory is cluster-visible.\n',
+          '  sim_res <- run_vpc_sim(\n',
+          '    mod_path      = vpcspec$input_model,\n',
+          '    data          = dat,\n',
+          '    n_rep         = vpcspec$nRep,\n',
+          '    n_jobs        = ', dl_n_jobs, 'L,\n',
+          '    carry_list    = carry,\n',
+          '    parallel_mode = "hpc",\n',
+          '    seed          = ', dl_seed_str, '\n',
           '  )\n'
         )
       } else {
         paste0(
-          '  # Reuse the `mod` object already mread() above instead of\n',
-          '  # re-reading/re-compiling it on every replicate.\n',
-          '  sim_list <- purrr::map(\n',
-          '    seq_len(vpcspec$nRep),\n',
-          '    function(i) {\n',
-          '      if (!is.null(', dl_seed_str, ')) set.seed(', dl_seed_str, ' + i)\n',
-          '      mod %>% data_set(dat) %>% carry_out(ROW) %>%\n',
-          '        mrgsim(atol = 1e-12, maxsteps = 50000) %>% dplyr::mutate(rep = i)\n',
-          '    }\n',
+          '  sim_res <- run_vpc_sim(\n',
+          '    mod_path      = vpcspec$input_model,\n',
+          '    data          = dat,\n',
+          '    n_rep         = vpcspec$nRep,\n',
+          '    carry_list    = carry,\n',
+          '    parallel_mode = "local",\n',
+          '    seed          = ', dl_seed_str, '\n',
           '  )\n'
         )
       }
 
-      s_vpc_rest_b <- '  sim <- bind_rows(sim_list) %>%
-    dplyr::rename_with(~dplyr::case_when(. == "time" ~ "TIME", . == "rep" ~ "IREP", TRUE ~ .)) %>%
-    left_join(dat %>% select(all_of(carry)), by = "ROW")
-
-  cat("Simulation complete:", nrow(sim), "rows across", vpcspec$nRep, "reps\n\n")
+      s_vpc_rest_b <- '
+  cat("Simulation complete:", nrow(sim_res$sim_df), "rows across", vpcspec$nRep, "reps\n\n")
 
   map(plots, function(.x) {
 
-    plotTitle <- set_option(vpcspec$plots[[.x]], "title",       "")
-    timeCol   <- set_option(vpcspec$plots[[.x]], "time_column", "TIME")
-    simCol    <- set_option(vpcspec$plots[[.x]], "sim_column",  "Y")
-    dvid      <- set_option(vpcspec$plots[[.x]], "dvid",        NULL)
-    scales    <- set_option(vpcspec$plots[[.x]], "scales",      "free")
-    logY      <- set_option(vpcspec$plots[[.x]], "logY",        FALSE)
-    predCorr  <- set_option(vpcspec$plots[[.x]], "predCorr",    FALSE)
-    smooth    <- set_option(vpcspec$plots[[.x]], "smooth",      TRUE)
-    bins      <- set_option(vpcspec$plots[[.x]], "bins",        "data")
-    obsdv     <- set_option(vpcspec$plots[[.x]], "obsdv",       TRUE)
-    pici      <- set_option(vpcspec$plots[[.x]], "pici",        TRUE)
-    censor    <- set_option(vpcspec$plots[[.x]], "censor",      FALSE)
-    lloq      <- set_option(vpcspec$plots[[.x]], "lloq",        NULL)
-    stratify  <- set_option(vpcspec$plots[[.x]], "stratify",    NULL)
-    xlim      <- set_option(vpcspec$plots[[.x]], "xlim",        NULL)
-    ylim      <- set_option(vpcspec$plots[[.x]], "ylim",        NULL)
-    x_breaks  <- { xb <- unlist(set_option(vpcspec$plots[[.x]], "x_breaks", NULL)); if (length(xb)) sort(as.numeric(xb)) else NULL }
-    y_breaks  <- { yb <- unlist(set_option(vpcspec$plots[[.x]], "y_breaks", NULL)); if (length(yb)) sort(as.numeric(yb)) else NULL }
-    xlab      <- set_option(vpcspec$plots[[.x]], "x_label",     "Time")
-    ylab      <- set_option(vpcspec$plots[[.x]], "y_label",     "Observation")
-    pi        <- unlist(set_option(vpcspec$plots[[.x]], "pi", c(0.05, 0.95)))
-    ci        <- unlist(set_option(vpcspec$plots[[.x]], "ci", c(0.025, 0.975)))
-    show_legend <- isTRUE(set_option(vpcspec$plots[[.x]], "show_legend", TRUE))
+    spec <- vpc_spec_from_yaml(vpcspec, .x)
+    fr   <- filter_vpc_frames(sim_res$obs_df, sim_res$sim_df,
+                              dvid = spec$dvid, sim_col = spec$sim_column)
 
-    if (predCorr) ylab <- paste0("Prediction-Corrected ", ylab)
+    cat("Plot:", .x, "| DVID:", spec$dvid %||% "all",
+        "| obs:", nrow(fr$obs), "| sim:", nrow(fr$sim), "\n")
 
-    pred_col  <- pred %>% rename(PRED = !!sym(simCol)) %>% select(ROW, PRED)
-    sim_plot  <- sim  %>% left_join(pred_col, by = "ROW")
-    dat_plot  <- dat  %>% left_join(pred_col, by = "ROW")
+    p <- render_vpc_plot(fr$obs, fr$sim, spec,
+                         cat_covariate_all_categories = prep$cat_covariate_all_categories)
 
-    if (!is.null(dvid)) {
-      datf <- dat_plot %>% filter(EVID == 0, DVID == dvid)
-      simf <- sim_plot %>% filter(DVID == dvid)
-    } else {
-      datf <- dat_plot %>% filter(EVID == 0)
-      simf <- sim_plot
-    }
-
-    # The vpc package own guess_software()/filter_dv() would otherwise re-drop
-    # MDV!=0 rows (e.g. preserved BQL rows) once it classifies this as
-    # NONMEM-format data. EVID is already filtered above, so dropping MDV here is safe.
-    datf <- datf %>% select(-any_of("MDV"))
-    simf <- simf %>% select(-any_of("MDV"))
-
-    if (!is.null(stratify)) {
-      for (ii in names(stratify)) {
-        if (is.null(stratify[[ii]])) next
-        breaks_val <- stratify[[ii]]
-        # Use subject-level values (distinct per ID) for quantile calculation,
-        # matching the app which also uses distinct(ID) to avoid repeated
-        # rows inflating quantiles for time-varying covariates.
-        x_ref <- datf %>% dplyr::distinct(ID, .keep_all = TRUE) %>% dplyr::pull(!!rlang::sym(ii))
-        if (breaks_val[1] == "quartiles") {
-          breaks_val <- c(floor(min(x_ref, na.rm = TRUE)),
-                          quantile(x_ref, probs = c(0.25, 0.50, 0.75), na.rm = TRUE),
-                          ceiling(max(x_ref, na.rm = TRUE)))
-        } else if (breaks_val[1] == "median") {
-          breaks_val <- c(floor(min(x_ref, na.rm = TRUE)),
-                          quantile(x_ref, probs = 0.50, na.rm = TRUE),
-                          ceiling(max(x_ref, na.rm = TRUE)))
-        }
-        factCol <- paste0(ii, "_f")
-        datf <- datf %>% mutate(!!sym(factCol) := cut(.data[[ii]], breaks = breaks_val, include.lowest = TRUE))
-        simf <- simf %>% mutate(!!sym(factCol) := cut(.data[[ii]], breaks = breaks_val, include.lowest = TRUE))
-      }
-      stratifyf <- map_chr(names(stratify), function(.s) {
-        factCol <- paste0(.s, "_f")
-        if (factCol %in% names(datf)) factCol else .s
-      })
-    } else {
-      stratifyf <- NULL
-    }
-
-    # Apply custom facet strip label overrides from YAML strip_labels section.
-    strip_labels <- set_option(vpcspec$plots[[.x]], "strip_labels", NULL)
-    if (!is.null(strip_labels)) {
-      for (sv in names(strip_labels)) {
-        factCol <- paste0(sv, "_f")
-        eff_col <- if (factCol %in% names(datf)) factCol else sv
-        lbl_map <- strip_labels[[sv]]
-        if (eff_col %in% names(datf)) {
-          for (old_lbl in names(lbl_map)) {
-            new_lbl <- lbl_map[[old_lbl]]
-            datf[[eff_col]] <- ifelse(as.character(datf[[eff_col]]) == old_lbl, new_lbl, as.character(datf[[eff_col]]))
-            simf[[eff_col]] <- ifelse(as.character(simf[[eff_col]]) == old_lbl, new_lbl, as.character(simf[[eff_col]]))
-          }
-        }
-      }
-    }
-
-    cat("Plot:", .x, "| DVID:", dvid %||% "all",
-        "| obs:", nrow(datf), "| sim:", nrow(simf), "\n")
-
-    vpc_args <- list(
-      obs      = datf,
-      sim      = simf,
-      obs_cols = list(idv = timeCol, dv = "DV",   pred = "PRED"),
-      sim_cols = list(idv = timeCol, dv = simCol, sim = "IREP", pred = "PRED"),
-      stratify = stratifyf,
-      bins     = bins,
-      ci       = ci,
-      facet    = "wrap",
-      vpc_theme = vpc_theme,
-      labeller = label_value
-    )
-
-    p_vpc <- do.call(vpc, c(vpc_args, list(
-      pi        = pi,
-      lloq      = lloq,
-      log_y     = logY,
-      smooth    = smooth,
-      scales    = scales,
-      pred_corr = predCorr,
-      show      = list(obs_dv = obsdv, obs_ci = TRUE,
-                       pi = !pici, pi_as_area = !pici, pi_ci = pici),
-      xlab = if (censor) "" else xlab,
-      ylab = ylab
-    ))) +
-      theme_bw() +
-      ggtitle(plotTitle) +
-      theme(
-        axis.text  = element_text(size = axis.text),
-        axis.title = element_text(size = axis.title),
-        strip.text = element_text(size = strip.text)
-      )
-
-    if (!is.null(xlim) || !is.null(ylim))
-      p_vpc <- p_vpc + coord_cartesian(xlim = xlim, ylim = ylim)
-
-    if (!is.null(x_breaks))
-      p_vpc <- p_vpc + scale_x_continuous(breaks = x_breaks)
-    if (!is.null(y_breaks))
-      p_vpc <- p_vpc + if (logY) scale_y_log10(breaks = y_breaks) else scale_y_continuous(breaks = y_breaks)
-
-    if (censor && !is.null(lloq)) {
-      p_cens <- do.call(vpc_cens, c(vpc_args, list(
-        lloq = lloq + 0.01,
-        xlab = xlab,
-        ylab = "Probability of <LLOQ"
-      ))) +
-        theme_bw() +
-        theme(
-          axis.text  = element_text(size = axis.text),
-          axis.title = element_text(size = axis.title),
-          strip.text = element_text(size = strip.text)
-        )
-      p_vpc <- strip_na_layers(p_vpc)
-      if (show_legend) p_vpc <- add_vpc_legend(p_vpc, vpc_theme, pi = pi)
-      p <- plot_grid(p_vpc, strip_na_layers(p_cens), ncol = 1, rel_heights = c(2, 1), align = "v")
-    } else {
-      p_vpc <- strip_na_layers(p_vpc)
-      if (show_legend) p_vpc <- add_vpc_legend(p_vpc, vpc_theme, pi = pi)
-      p <- p_vpc
-    }
-
-    stemx   <- paste0(stem, "-", .x)
-    outfile <- file.path(out_dir, paste0(stemx, ".", type))
+    outfile <- file.path(out_dir, paste0(stem, "-", .x, ".", type))
     ggsave(outfile, p, width = width, height = height, dpi = 150)
     cat("  Saved:", outfile, "\n")
 
