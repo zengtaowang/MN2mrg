@@ -607,36 +607,6 @@ run_vpc_sim <- function(mod_path, data, n_rep, n_jobs = NULL,
 }
 
 
-#' Select the rows of one DVID for plotting
-#'
-#' Reduce the frames returned by [run_vpc_sim()] to what [render_vpc_plot()]
-#' needs for a single plot: dosing rows (`EVID != 0`) and rows with a missing
-#' observation or simulated value are dropped, and `dvid` is selected when
-#' supplied. The `vpc` package stops with an error on missing values, so this
-#' is the single place they are removed.
-#'
-#' @param obs_df,sim_df Data frames from [run_vpc_sim()] (`obs_df`, `sim_df`).
-#' @param dvid Numeric or `NULL`. DVID to keep; `NULL` keeps all.
-#' @param sim_col Character. Simulated-value column, `"Y"` by default.
-#'
-#' @return List with filtered `obs` and `sim` data frames.
-#'
-#' @export
-filter_vpc_frames <- function(obs_df, sim_df, dvid = NULL, sim_col = "Y") {
-  obs <- obs_df
-  sim <- sim_df
-  if ("EVID" %in% names(obs)) obs <- dplyr::filter(obs, .data$EVID == 0)
-  if (!is.null(dvid)) {
-    obs <- dplyr::filter(obs, .data$DVID == dvid)
-    sim <- dplyr::filter(sim, .data$DVID == dvid)
-  }
-  list(
-    obs = dplyr::filter(obs, !is.na(.data$DV)),
-    sim = dplyr::filter(sim, !is.na(.data[[sim_col]]))
-  )
-}
-
-
 #' Build a [render_vpc_plot()] spec from one plot of a `vpc.yaml` config
 #'
 #' Translate the plot entry `plot_name` of a parsed VPC YAML (as written by
@@ -709,8 +679,8 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
 
 #' Render a VPC ggplot from prepared observation and simulation data
 #'
-#' Produce a single VPC ggplot from pre-filtered observation and simulation
-#' frames. Handles continuous- and categorical-covariate stratification
+#' Produce a single VPC ggplot from the observation and simulation frames
+#' of [run_vpc_sim()]. Handles continuous- and categorical-covariate stratification
 #' (with median/quartile/customised binning), decodes numeric categoricals
 #' back to their original labels for strip text, drops empty layers,
 #' applies axis breaks and limits, and attaches the standard
@@ -719,13 +689,16 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
 #' below-LLOQ probability panel via `cowplot::plot_grid()`. Does not save
 #' to disk.
 #'
-#' @param obs Data frame. Observation dataset with `DV`, `TIME`, `PRED`,
-#'   already filtered to the target DVID.
-#' @param sim Data frame. Simulation dataset with `DV`, `TIME`, `PRED`,
-#'   `rep`, already filtered to the target DVID.
+#' @param obs Data frame. Observation dataset with `DV`, `DVID`, `TIME`,
+#'   `PRED`, as returned by [run_vpc_sim()]. Rows with a missing `DV` are
+#'   dropped; if `vpc_spec$dvid` is set, only that DVID is kept.
+#' @param sim Data frame. Simulation dataset with `Y`, `DVID`, `TIME`, `PRED`,
+#'   `rep`, and `EVID` when the data have dosing records (so `vpc::vpc()`
+#'   can drop them), as returned by [run_vpc_sim()]. Filtered like `obs`.
 #' @param vpc_spec Named list. Single plot spec from
-#'   [build_vpc_plot_spec()]; also accepts `x_label`/`y_label` overrides
-#'   and `xlim`/`ylim` axis-limit pairs.
+#'   [build_vpc_plot_spec()] or [vpc_spec_from_yaml()]; also accepts
+#'   `x_label`/`y_label` overrides, `xlim`/`ylim` axis-limit pairs and
+#'   `dvid`.
 #' @param dataspec Named list from [build_dataspec()], or `NULL` to fall
 #'   back to `vpc_spec$x_label`/`y_label` and hardcoded defaults.
 #' @param cat_covariate_all_categories Named list for decoding numeric
@@ -742,6 +715,18 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
 
   time_col   <- vpc_spec$time_column %||% "TIME"
   sim_col    <- vpc_spec$sim_column  %||% "Y"
+
+  # Select the plot's DVID when the spec names one (YAML specs do; the app
+  # passes frames already reduced to one DVID). Rows with a missing DV or
+  # simulated value are dropped because vpc() stops with an error on them.
+  # Dosing rows (EVID != 0) are left to vpc(), which drops them itself.
+  if (!is.null(vpc_spec$dvid)) {
+    obs <- dplyr::filter(obs, .data$DVID == vpc_spec$dvid)
+    sim <- dplyr::filter(sim, .data$DVID == vpc_spec$dvid)
+  }
+  obs <- dplyr::filter(obs, !is.na(.data$DV))
+  sim <- dplyr::filter(sim, !is.na(.data[[sim_col]]))
+
   logY       <- isTRUE(vpc_spec$logY)
   pred_corr  <- isTRUE(vpc_spec$predCorr)
   lloq_val   <- vpc_spec$lloq

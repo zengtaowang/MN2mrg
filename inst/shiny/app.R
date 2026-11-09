@@ -4590,13 +4590,9 @@ vpc.yaml <- function(yaml) {
   map(plots, function(.x) {
 
     spec <- vpc_spec_from_yaml(vpcspec, .x)
-    fr   <- filter_vpc_frames(sim_res$obs_df, sim_res$sim_df,
-                              dvid = spec$dvid, sim_col = spec$sim_column)
+    cat("Plot:", .x, "| DVID:", spec$dvid %||% "all", "\n")
 
-    cat("Plot:", .x, "| DVID:", spec$dvid %||% "all",
-        "| obs:", nrow(fr$obs), "| sim:", nrow(fr$sim), "\n")
-
-    p <- render_vpc_plot(fr$obs, fr$sim, spec,
+    p <- render_vpc_plot(sim_res$obs_df, sim_res$sim_df, spec,
                          cat_covariate_all_categories = prep$cat_covariate_all_categories)
 
     outfile <- file.path(out_dir, paste0(stem, "-", .x, ".", type))
