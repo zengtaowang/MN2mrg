@@ -22,3 +22,4 @@ Overlay four sentinel geoms (\code{NA}-data lines and ribbons) so that
 ggplot's scale-manual guides render a compact "Obs. pct / Obs. median /
 Sim. PI / Sim. median" legend at the bottom of a \code{vpc::vpc()} plot.
 }
+\keyword{internal}

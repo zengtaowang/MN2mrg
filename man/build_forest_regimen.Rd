@@ -37,3 +37,4 @@ Named list suitable for the \verb{regimen:} section of \code{forest.yaml}.
 Assemble the named list that forest.R reads to construct its reference
 and covariate-perturbation dosing event records.
 }
+\keyword{internal}

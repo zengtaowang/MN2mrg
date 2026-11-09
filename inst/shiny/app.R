@@ -1563,9 +1563,9 @@ server <- function(input, output, session) {
   observeEvent(input$nm_create_plot, {
     nm_verify_msg("Running verification...")
 
-    # Parse $DATA IGNORE rules once and let verifyModel() do the row-filtering
+    # Parse $DATA IGNORE rules once and let verify_translation() do the row-filtering
     # (ignore_chars / ignore_nonnumeric) internally -- mirrors the skill's
-    # verifyModel() so filtering isn't duplicated/reimplemented here.
+    # verify_translation() so filtering isn't duplicated/reimplemented here.
     ctl_path  <- nm_ctlFile()
     nm_ignore <- if (nchar(ctl_path) > 0 && file.exists(ctl_path))
       parse_nonmem_ignore(readLines(ctl_path, warn = FALSE))
@@ -1573,7 +1573,7 @@ server <- function(input, output, session) {
       list(conditions = character(0), ignore_chars = character(0), ignore_nonnumeric = FALSE)
 
     result <- tryCatch(
-      verifyModel(
+      verify_translation(
         model             = input$nm_model_editor,
         dataset           = nm_datFile(),
         table             = nm_tabFile(),

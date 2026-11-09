@@ -19,3 +19,4 @@ Replace Monolix bracket-notation categorical covariate references with a
 sequential integer. Multiple values for the same covariate are numbered in
 first-seen order.
 }
+\keyword{internal}

@@ -20,7 +20,7 @@
 #' @return Named list mapping `adm` numbers (as strings) to compartment
 #'   names, e.g. `list("1" = "Ac_depot", "2" = "Ad")`.
 #'
-#' @export
+#' @keywords internal
 extract_adm_to_target <- function(clean_lines) {
   long_idx <- which(stringr::str_detect(clean_lines, "^\\s*\\[LONGITUDINAL\\]\\s*$"))
   if (!length(long_idx)) return(list())
@@ -80,7 +80,7 @@ extract_adm_to_target <- function(clean_lines) {
 #' @return `data` with matching-row filters applied. Conditions that fail
 #'   to parse or reference missing columns are silently skipped.
 #'
-#' @export
+#' @keywords internal
 apply_mlx_filter_conditions <- function(data, conditions) {
   if (is.null(conditions) || length(conditions) == 0) return(data)
   for (expr_str in conditions) {
@@ -123,7 +123,7 @@ apply_mlx_filter_conditions <- function(data, conditions) {
 #'   numeric categoricals back to their original labels in downstream
 #'   plotting).
 #'
-#' @export
+#' @keywords internal
 prepare_monolix_dataset <- function(data, opts = list()) {
 
   data_info      <- opts$data_info
@@ -383,7 +383,7 @@ prepare_monolix_dataset <- function(data, opts = list()) {
 #'   to AND together, referencing raw csv column names) and `description`
 #'   (character vector of human-readable descriptions for display).
 #'
-#' @export
+#' @keywords internal
 parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
   empty <- list(conditions = character(0), description = character(0))
   if (is.null(mlxtran_path) || !nchar(mlxtran_path) || !file.exists(mlxtran_path))

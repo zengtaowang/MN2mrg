@@ -19,7 +19,7 @@
 #'   (logical; `TRUE` when `IGNORE=@` is present, meaning drop any row whose
 #'   first non-blank character is not numeric/sign/decimal).
 #'
-#' @export
+#' @keywords internal
 parse_nonmem_ignore <- function(ctl_lines) {
   nm_ops <- c("\\.EQ\\." = " == ", "\\.NE\\." = " != ",
                "\\.GE\\." = " >= ", "\\.LE\\." = " <= ",
@@ -99,7 +99,7 @@ parse_nonmem_ignore <- function(ctl_lines) {
 #'
 #' @return `body` with matching rows removed. Blank lines are always kept.
 #'
-#' @export
+#' @keywords internal
 apply_nonmem_ignore_rules <- function(body, ignore_chars = character(0),
                                        ignore_nonnumeric = FALSE) {
   if (isTRUE(ignore_nonnumeric))
@@ -124,7 +124,7 @@ apply_nonmem_ignore_rules <- function(body, ignore_chars = character(0),
 #' @return Character. Normalised (possibly non-existent) path string, or
 #'   `NULL` when no `$DATA` block is present.
 #'
-#' @export
+#' @keywords internal
 parse_nonmem_datafile <- function(ctl_lines, ctl_dir = NULL) {
   ctl_lines  <- sub(";.*$", "", ctl_lines)
   data_start <- grep("^\\s*\\$DATA\\b", ctl_lines, ignore.case = TRUE)

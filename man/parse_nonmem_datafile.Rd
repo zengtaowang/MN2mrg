@@ -20,3 +20,4 @@ Character. Normalised (possibly non-existent) path string, or
 Return the file token that immediately follows \verb{$DATA}, resolved against
 \code{ctl_dir} when the token is a relative path.
 }
+\keyword{internal}

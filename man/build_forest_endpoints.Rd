@@ -23,3 +23,4 @@ Assemble the named list keyed by endpoint (\code{auc}, \code{aucinf}, \code{cmax
 \code{cmin}, \code{cavg}, or \code{parameter}) with each entry carrying a display
 \code{label} and, for the \code{parameter} endpoint, a \code{param} variable name.
 }
+\keyword{internal}

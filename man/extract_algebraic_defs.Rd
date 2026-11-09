@@ -19,3 +19,4 @@ PK: (excluding \code{depot(...)} calls), correctly combining multi-line
 algebraic definitions while dropping continuation lines that belong to
 an ODE.
 }
+\keyword{internal}

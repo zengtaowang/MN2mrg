@@ -23,3 +23,4 @@ translated mrgsolve model. When a \code{depot()} call specifies \verb{ka=}
 \code{\link[=extract_depot_info]{extract_depot_info()}}'s naming or ADM->CMT lookups built from this map
 will route ka-based doses into the wrong compartment.
 }
+\keyword{internal}

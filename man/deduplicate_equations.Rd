@@ -18,3 +18,4 @@ Keep only the first definition of each named variable in an equations
 vector, dropping any later re-definition. Non-\code{double}-prefixed lines pass
 through unchanged.
 }
+\keyword{internal}

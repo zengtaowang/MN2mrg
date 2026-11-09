@@ -16,3 +16,4 @@ Character vector of bioavailability/duration/lag lines.
 Compatibility shim for callers that only need the F_/D_/ALAG_ lines from
 \code{\link[=extract_depot_info]{extract_depot_info()}}.
 }
+\keyword{internal}

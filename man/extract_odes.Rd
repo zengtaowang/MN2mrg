@@ -17,3 +17,4 @@ Return the concatenated \code{ddt_var = ...} (or its continuation-line
 extensions) definitions from the EQUATION: block, rewritten with the
 mrgsolve prefix \code{dxdt_} and stripped of Monolix statement terminators.
 }
+\keyword{internal}

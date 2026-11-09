@@ -16,3 +16,4 @@ floating-point equivalents.
 \description{
 Convert \code{min()} and \code{max()} calls to C++ \code{fmin()} and \code{fmax()}
 }
+\keyword{internal}

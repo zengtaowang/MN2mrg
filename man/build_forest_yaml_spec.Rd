@@ -60,3 +60,4 @@ Combine model, data-spec, output, and per-section builders
 single list that can be serialised to \code{forest.yaml} via
 \code{yaml::write_yaml()}.
 }
+\keyword{internal}

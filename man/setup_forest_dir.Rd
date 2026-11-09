@@ -20,3 +20,4 @@ Populate \code{outdir} with the standalone forest reproducibility bundle:
 \code{here::here()} inside \code{forest.R} resolves to \code{outdir} rather than climbing
 to a higher \code{.git}/\code{.Rproj} root.
 }
+\keyword{internal}

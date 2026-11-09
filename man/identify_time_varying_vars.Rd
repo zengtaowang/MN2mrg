@@ -24,3 +24,4 @@ variables), iteratively propagate time-varying-ness across a set of
 algebraic definitions and return the indices of definitions that must
 therefore live inside the ODE block rather than in \verb{$MAIN}.
 }
+\keyword{internal}

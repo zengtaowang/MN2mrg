@@ -20,3 +20,4 @@ round-trip it through \code{\link[mrgsolve:mread]{mrgsolve::mread()}} to verify 
 Errors are captured rather than raised so callers can surface a friendly
 message in the Shiny UI.
 }
+\keyword{internal}

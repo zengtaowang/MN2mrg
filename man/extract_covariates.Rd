@@ -19,3 +19,4 @@ Given a Monolix \code{getData()}-style list containing \code{header} and
 \code{headerTypes} fields, return the header names that carry \code{contcov} and
 \code{catcov} types.
 }
+\keyword{internal}

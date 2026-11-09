@@ -27,3 +27,4 @@ schema. Consumed by \code{\link[=build_vpc_spec]{build_vpc_spec()}} via its \cod
 \code{\link[=render_vpc_plot]{render_vpc_plot()}} to drive stratification, log-axis, censoring, and
 cosmetic choices for one panel.
 }
+\keyword{internal}

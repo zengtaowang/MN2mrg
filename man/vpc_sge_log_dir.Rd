@@ -25,3 +25,4 @@ directory is cluster-visible by construction, whereas \verb{/tmp} is normally
 node-local: logs written there land on the execution host and the
 submitting user can never read them.
 }
+\keyword{internal}

@@ -17,3 +17,4 @@ Split \code{"Male, Female"} into \code{c("Male", "Female")}, dropping empty
 tokens. Used as the plot-only display labels for a categorical
 covariate's numeric codes.
 }
+\keyword{internal}
