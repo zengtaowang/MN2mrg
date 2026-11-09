@@ -15,7 +15,8 @@ or \code{"customized"}, and \code{breaks} is a numeric vector for the customized
 case), \code{scales}, \code{logY}, \code{predCorr}, \code{pi}, \code{ci}, \code{bins}, \code{custom_bins},
 \code{obsdv}, \code{pici}, \code{censor}, \code{smooth}, \code{x_label}, \code{y_label}, \code{xlim},
 \code{ylim}, \code{x_breaks}, \code{y_breaks}, \code{pi_fill}, \code{med_fill}, \code{axis_text_size},
-\code{axis_title_size}, \code{strip_text_size}, \code{show_legend}.}
+\code{axis_title_size}, \code{strip_text_size}, \code{show_legend}, \code{strip_labels}
+(named list: stratification variable to a list of \verb{old level = new label}).}
 }
 \value{
 Named list with all per-plot schema fields populated.

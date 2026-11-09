@@ -13,15 +13,18 @@ render_vpc_plot(
 )
 }
 \arguments{
-\item{obs}{Data frame. Observation dataset with \code{DV}, \code{TIME}, \code{PRED},
-already filtered to the target DVID.}
+\item{obs}{Data frame. Observation dataset with \code{DV}, \code{DVID}, \code{TIME},
+\code{PRED}, as returned by \code{\link[=run_vpc_sim]{run_vpc_sim()}}. Rows with a missing \code{DV} are
+dropped; if \code{vpc_spec$dvid} is set, only that DVID is kept.}
 
-\item{sim}{Data frame. Simulation dataset with \code{DV}, \code{TIME}, \code{PRED},
-\code{rep}, already filtered to the target DVID.}
+\item{sim}{Data frame. Simulation dataset with \code{Y}, \code{DVID}, \code{TIME}, \code{PRED},
+\code{rep}, and \code{EVID} when the data have dosing records (so \code{vpc::vpc()}
+can drop them), as returned by \code{\link[=run_vpc_sim]{run_vpc_sim()}}. Filtered like \code{obs}.}
 
 \item{vpc_spec}{Named list. Single plot spec from
-\code{\link[=build_vpc_plot_spec]{build_vpc_plot_spec()}}; also accepts \code{x_label}/\code{y_label} overrides
-and \code{xlim}/\code{ylim} axis-limit pairs.}
+\code{\link[=build_vpc_plot_spec]{build_vpc_plot_spec()}} or \code{\link[=vpc_spec_from_yaml]{vpc_spec_from_yaml()}}; also accepts
+\code{x_label}/\code{y_label} overrides, \code{xlim}/\code{ylim} axis-limit pairs and
+\code{dvid}.}
 
 \item{dataspec}{Named list from \code{\link[=build_dataspec]{build_dataspec()}}, or \code{NULL} to fall
 back to \code{vpc_spec$x_label}/\code{y_label} and hardcoded defaults.}
@@ -35,8 +38,8 @@ A ggplot object, or a cowplot vertical grid when
 \code{vpc_spec$censor} is \code{TRUE} and cowplot is installed.
 }
 \description{
-Produce a single VPC ggplot from pre-filtered observation and simulation
-frames. Handles continuous- and categorical-covariate stratification
+Produce a single VPC ggplot from the observation and simulation frames
+of \code{\link[=run_vpc_sim]{run_vpc_sim()}}. Handles continuous- and categorical-covariate stratification
 (with median/quartile/customised binning), decodes numeric categoricals
 back to their original labels for strip text, drops empty layers,
 applies axis breaks and limits, and attaches the standard
