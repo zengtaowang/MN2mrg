@@ -491,7 +491,8 @@ vpc_sge_log_dir <- function(mod_path) {
 #'   `NULL` default is the honest value.
 #' @param carry_list Character vector. Columns to merge back into the
 #'   simulation output after the run; typically `c("DVID", "ROW")` plus any
-#'   stratification variables.
+#'   stratification variables. `EVID` is always carried when present in
+#'   `data`, so `vpc::vpc()` can drop dosing rows from the simulated frame.
 #' @param parallel_mode Character. `"local"` (default) to run in-process on
 #'   this host with no job submission, or `"hpc"` to dispatch to SGE.
 #' @param seed Integer or `NULL`. RNG seed for reproducibility. Replicate `i`
@@ -590,8 +591,10 @@ run_vpc_sim <- function(mod_path, data, n_rep, n_jobs = NULL,
 
   sim_df <- dplyr::bind_rows(sim_list)
 
-  # Merge carry columns (stratification vars, DVID) from original dataset
-  carry_cols <- intersect(carry_list, names(data))
+  # Merge carry columns (stratification vars, DVID) from original dataset.
+  # EVID is always carried so vpc() can drop dosing rows from the simulated
+  # frame; without it, NONMEM-style dosing records land in the DVID bands.
+  carry_cols <- intersect(unique(c("EVID", carry_list)), names(data))
   sim_df <- sim_df %>%
     dplyr::left_join(dplyr::select(data, ROW, dplyr::all_of(carry_cols)), by = "ROW")
 

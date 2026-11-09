@@ -28,7 +28,8 @@ run_vpc_sim(
 
 \item{carry_list}{Character vector. Columns to merge back into the
 simulation output after the run; typically \code{c("DVID", "ROW")} plus any
-stratification variables.}
+stratification variables. \code{EVID} is always carried when present in
+\code{data}, so \code{vpc::vpc()} can drop dosing rows from the simulated frame.}
 
 \item{parallel_mode}{Character. \code{"local"} (default) to run in-process on
 this host with no job submission, or \code{"hpc"} to dispatch to SGE.}
