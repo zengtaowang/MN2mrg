@@ -21,3 +21,4 @@ Return the value for \code{param_name} in a \code{depot(...)} call, supporting b
 the \code{name = value} and bare-keyword forms (e.g. \code{depot(adm=5, ka)} where
 the bare \code{ka} implies \code{ka = ka}).
 }
+\keyword{internal}

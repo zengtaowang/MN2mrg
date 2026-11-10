@@ -17,3 +17,4 @@ Iteratively rewrite \code{base^exp} expressions to \code{pow(base, exp)}, correc
 bracket-matching parenthesised bases and function-call bases like
 \code{max(a, b)^n}.
 }
+\keyword{internal}

@@ -32,3 +32,4 @@ Assemble the uncertainty descriptor for one of the three supported
 propagation methods: NONMEM covariance matrix, PsN bootstrap, or a set
 of NONMEM Bayes \code{.ext} files.
 }
+\keyword{internal}

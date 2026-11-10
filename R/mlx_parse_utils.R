@@ -20,7 +20,7 @@
 #'
 #' @importFrom stringr str_detect str_match str_trim
 #'
-#' @export
+#' @keywords internal
 extract_longitudinal <- function(lines) {
   i <- which(str_detect(lines, "^\\s*\\[LONGITUDINAL\\]\\s*$"))
   if (!length(i)) return(lines)
@@ -43,7 +43,7 @@ extract_longitudinal <- function(lines) {
 #' @return Character vector containing the merged block content, or
 #'   `character(0)` if no such block is present.
 #'
-#' @export
+#' @keywords internal
 get_block <- function(lines, label) {
   block_starts <- which(str_detect(lines, paste0("^\\s*", label, "\\s*:\\s*$")))
   if (!length(block_starts)) return(character())
@@ -80,7 +80,7 @@ get_block <- function(lines, label) {
 #' @return Character. The parameter value on success, the bare parameter
 #'   name when supplied bare, or `NA_character_` when not present.
 #'
-#' @export
+#' @keywords internal
 extract_depot_param <- function(line, param_name) {
   param_pattern <- paste0(param_name, "\\s*=\\s*")
   param_match <- str_match(line, param_pattern)
@@ -137,7 +137,7 @@ extract_depot_param <- function(line, param_name) {
 #'   `target_absorption` (a named list of "absorption term" strings keyed by
 #'   target compartment).
 #'
-#' @export
+#' @keywords internal
 extract_depot_info <- function(clean_lines) {
   long <- extract_longitudinal(clean_lines)
   pk_block <- get_block(long, "PK")

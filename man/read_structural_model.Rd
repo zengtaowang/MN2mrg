@@ -22,3 +22,4 @@ the matched library model in place of the macros (rewriting the macros
 as \code{depot(...)} calls). If the model is a \verb{lib:} reference, read the
 library file directly.
 }
+\keyword{internal}

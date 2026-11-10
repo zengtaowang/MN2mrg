@@ -17,3 +17,4 @@ translated to \verb{if (...) \{}, \verb{\} else if (...) \{}, \verb{\} else \{},
 Rewrite Monolix's Fortran-flavoured conditional syntax into C++ curly-brace
 form and add trailing semicolons on statements inside the block.
 }
+\keyword{internal}

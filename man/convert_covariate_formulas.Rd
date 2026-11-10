@@ -20,3 +20,4 @@ character), skip transformed categorical covariates (handled separately),
 and emit one \verb{double var = ...;} line per formula with \code{pow()}, float
 literals, \code{fmin}/\code{fmax}, and categorical-bracket substitutions applied.
 }
+\keyword{internal}

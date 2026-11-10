@@ -17,3 +17,4 @@ Rewrite \code{rem(t, tau)} calls (Monolix's continuous modulo helper for
 periodic dosing surrogates) into the equivalent
 \code{tau * (SOLVERTIME/tau - floor(SOLVERTIME/tau))} mrgsolve idiom.
 }
+\keyword{internal}

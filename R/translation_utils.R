@@ -12,7 +12,7 @@
 #'   str_locate str_sub str_match str_match_all str_trim str_length
 #'   str_split str_remove regex fixed
 #' @importFrom purrr map_chr
-#' @export
+#' @keywords internal
 strip_comments <- function(x) {
   x <- str_replace(x, ";.*$", "")
   x <- str_replace(x, "//.*$", "")
@@ -29,7 +29,7 @@ strip_comments <- function(x) {
 #' @return `s` with runs of internal whitespace collapsed to single spaces
 #'   and leading/trailing whitespace removed.
 #'
-#' @export
+#' @keywords internal
 collapse_ws <- function(s) str_squish(s)
 
 #' Convert bare integer literals to floating-point literals
@@ -43,7 +43,7 @@ collapse_ws <- function(s) str_squish(s)
 #'
 #' @return `x` with bare integer literals rewritten as floats.
 #'
-#' @export
+#' @keywords internal
 convert_integers_to_floats <- function(x) {
   placeholder <- "SCINUM_PLACEHOLDER"
   protected <- str_replace_all(x, "[0-9]+\\.?[0-9]*[eE][+-]?[0-9]+", function(m) {
@@ -65,7 +65,7 @@ convert_integers_to_floats <- function(x) {
 #'
 #' @return `x` with every `^` operator rewritten as a `pow()` call.
 #'
-#' @export
+#' @keywords internal
 convert_power_notation <- function(x) {
   result <- x
   while (str_detect(result, "\\^")) {
@@ -132,7 +132,7 @@ convert_power_notation <- function(x) {
 #'
 #' @return `x` with `rem(...)` calls rewritten.
 #'
-#' @export
+#' @keywords internal
 convert_rem_notation <- function(x) {
   result <- str_replace_all(x,
                            "rem\\s*\\(\\s*t\\s*,\\s*([0-9.]+)\\s*\\)",
@@ -147,7 +147,7 @@ convert_rem_notation <- function(x) {
 #' @return `x` with `min(...)` and `max(...)` calls rewritten to their C++
 #'   floating-point equivalents.
 #'
-#' @export
+#' @keywords internal
 convert_minmax_notation <- function(x) {
   result <- str_replace_all(x, "\\bmax\\s*\\(", "fmax(")
   result <- str_replace_all(result, "\\bmin\\s*\\(", "fmin(")
@@ -177,7 +177,7 @@ RESERVED_MATH_NAMES <- c(
 #'
 #' @return `x` with reserved-name collisions renamed.
 #'
-#' @export
+#' @keywords internal
 sanitize_reserved_names <- function(x) {
   result <- x
   for (nm in RESERVED_MATH_NAMES) {
@@ -198,7 +198,7 @@ sanitize_reserved_names <- function(x) {
 #' @return `x` with `[COVAR = VALUE]` occurrences rewritten to
 #'   `(COVAR == n)`.
 #'
-#' @export
+#' @keywords internal
 convert_categorical_covariate <- function(x) {
   patterns <- str_match_all(x, "\\[([a-zA-Z0-9_]+)\\s*=\\s*([^\\]]+?)\\s*\\]")[[1]]
   if (nrow(patterns) == 0) return(x)
@@ -234,7 +234,7 @@ convert_categorical_covariate <- function(x) {
 #'
 #' @return `equations` with duplicate variable definitions removed.
 #'
-#' @export
+#' @keywords internal
 deduplicate_equations <- function(equations) {
   if (is.null(equations) || length(equations) == 0) return(equations)
 
@@ -272,7 +272,7 @@ deduplicate_equations <- function(equations) {
 #'   should move to the ODE block) and `time_varying_vars` (the full closure
 #'   of variables identified as time-dependent).
 #'
-#' @export
+#' @keywords internal
 identify_time_varying_vars <- function(algebraics, ode_vars) {
   time_varying <- c("SOLVERTIME")
 
@@ -328,7 +328,7 @@ identify_time_varying_vars <- function(algebraics, ode_vars) {
 #' @return `TRUE` if any name in `vars` appears (word-bounded) inside
 #'   `block_lines`, `FALSE` otherwise.
 #'
-#' @export
+#' @keywords internal
 is_if_block_with_var <- function(block_lines, vars) {
   if (!length(vars)) return(FALSE)
   clean_lines <- str_remove(block_lines, "^double\\s+")
@@ -346,7 +346,7 @@ is_if_block_with_var <- function(block_lines, vars) {
 #' @return Character vector of description lines, or `character(0)` if no
 #'   `DESCRIPTION:` header is present.
 #'
-#' @export
+#' @keywords internal
 extract_description <- function(lines) {
   i <- which(str_detect(lines, regex("^\\s*DESCRIPTION\\s*:", ignore_case = TRUE)))[1]
   if (is.na(i)) return(character())
@@ -374,7 +374,7 @@ extract_description <- function(lines) {
 #'
 #' @return Character vector of bioavailability/duration/lag lines.
 #'
-#' @export
+#' @keywords internal
 extract_bioavailability <- function(clean_lines) {
   info <- extract_depot_info(clean_lines)
   info$bioavail_lines
@@ -390,7 +390,7 @@ extract_bioavailability <- function(clean_lines) {
 #'
 #' @return Character vector of mrgsolve-syntax ODE lines.
 #'
-#' @export
+#' @keywords internal
 extract_odes <- function(clean_lines) {
   long  <- extract_longitudinal(clean_lines)
   eqblk <- get_block(long, "EQUATION")
@@ -449,7 +449,7 @@ extract_odes <- function(clean_lines) {
 #' @return Character vector of `double var = ...;` lines suitable for
 #'   emission into mrgsolve's `$MAIN` block.
 #'
-#' @export
+#' @keywords internal
 extract_algebraic_defs <- function(clean_lines) {
   long <- extract_longitudinal(clean_lines)
   eq   <- get_block(long, "EQUATION")
@@ -550,7 +550,7 @@ extract_algebraic_defs <- function(clean_lines) {
 #' @return Character vector with `if ...`, `elseif ...`, `else`, `end`
 #'   translated to `if (...) {`, `} else if (...) {`, `} else {`, and `}`.
 #'
-#' @export
+#' @keywords internal
 convert_if_block <- function(lines) {
   out <- character()
   in_if <- FALSE
@@ -587,7 +587,7 @@ convert_if_block <- function(lines) {
 #' @return Character vector of OUTPUT: block content, or `character(0)` if
 #'   no OUTPUT block exists.
 #'
-#' @export
+#' @keywords internal
 extract_output_block <- function(clean_lines) {
   long <- extract_longitudinal(clean_lines)
   out  <- get_block(long, "OUTPUT")
@@ -604,7 +604,7 @@ extract_output_block <- function(clean_lines) {
 #'
 #' @return Character vector of regressor variable names.
 #'
-#' @export
+#' @keywords internal
 extract_regressors <- function(clean_lines) {
   long <- extract_longitudinal(clean_lines)
   reg_lines <- long[str_detect(long, "regressor")]
@@ -626,7 +626,7 @@ extract_regressors <- function(clean_lines) {
 #' @return List with `continuous` and `categorical` character vectors of
 #'   column names.
 #'
-#' @export
+#' @keywords internal
 extract_covariates <- function(data_info) {
   headers <- data_info$header
   header_types <- data_info$headerTypes
@@ -648,7 +648,7 @@ extract_covariates <- function(data_info) {
 #' @return Character vector of `double var = expr;` lines suitable for
 #'   emission into mrgsolve's `$MAIN` block.
 #'
-#' @export
+#' @keywords internal
 convert_covariate_formulas <- function(covariate_formulas) {
   if (!length(covariate_formulas) || is.null(covariate_formulas)) return(character())
 
@@ -711,7 +711,7 @@ convert_covariate_formulas <- function(covariate_formulas) {
 #' @return List with `names`, `references`, `all_categories`,
 #'   `original_covariates`, and `category_mapping` sub-lists.
 #'
-#' @export
+#' @keywords internal
 extract_transformed_categorical_covariates <- function(covariate_formulas) {
   if (!is.list(covariate_formulas) || length(covariate_formulas) == 0) {
     return(list(
@@ -795,7 +795,7 @@ extract_transformed_categorical_covariates <- function(covariate_formulas) {
 #' @return Character. Path to an existing directory holding at least one
 #'   `.txt` library model.
 #'
-#' @export
+#' @keywords internal
 monolix_library_dir <- function() {
   candidates <- c(
     "option MN2mrg.monolix_library_path" =
@@ -846,7 +846,7 @@ monolix_library_dir <- function() {
 #' @return Character. Absolute path to the library model file for a `lib:`
 #'   reference; `structural_model_path` unchanged otherwise.
 #'
-#' @export
+#' @keywords internal
 resolve_lib_model_path <- function(structural_model_path) {
   if (!is.character(structural_model_path) ||
       length(structural_model_path) != 1L ||
@@ -885,7 +885,7 @@ resolve_lib_model_path <- function(structural_model_path) {
 #'
 #' @return Character vector of expanded model source lines.
 #'
-#' @export
+#' @keywords internal
 read_structural_model <- function(structural_model_path) {
   valid_params <- c("Tk0", "Tlag", "ka",  "k", "Vm", "Km",
                     "k12", "k21", "k13", "k31",

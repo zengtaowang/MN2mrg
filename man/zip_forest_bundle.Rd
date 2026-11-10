@@ -23,3 +23,4 @@ zip so the user can rerun the plot locally. Uses
 \code{\link[withr:with_dir]{withr::with_dir()}} to run \code{utils::zip()} in \code{outdir} without a
 persistent \code{setwd()}.
 }
+\keyword{internal}

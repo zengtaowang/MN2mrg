@@ -26,3 +26,4 @@ column names to dataset column names, plus optional per-column
 \code{unit}/\code{label} metadata. Consumed by \code{\link[=render_vpc_plot]{render_vpc_plot()}} to build axis
 labels ("Time (hr)" etc.).
 }
+\keyword{internal}

@@ -17,3 +17,4 @@ Character vector of description lines, or \code{character(0)} if no
 Return the text on and after \verb{DESCRIPTION:} up to (but not including) the
 \verb{[LONGITUDINAL]} header, dropping blank lines.
 }
+\keyword{internal}

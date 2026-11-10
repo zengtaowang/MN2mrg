@@ -29,3 +29,4 @@ That is the defect described in \code{\link[=forest_param_names]{forest_param_na
 keeps it from reappearing the next time someone reaches for \code{as.list()} on
 a model object in \verb{R/}.
 }
+\keyword{internal}

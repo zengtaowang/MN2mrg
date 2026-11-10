@@ -48,7 +48,7 @@
 #' @importFrom vpc vpc vpc_cens new_vpc_theme
 #' @importFrom mrgsolve loadso mrgsim
 #'
-#' @export
+#' @keywords internal
 strip_na_layers <- function(p) {
   for (k in seq_along(p$layers)) {
     d <- p$layers[[k]]$data
@@ -81,7 +81,7 @@ strip_na_layers <- function(p) {
 #'
 #' @return `p` with the sentinel legend layers and manual scales attached.
 #'
-#' @export
+#' @keywords internal
 add_vpc_legend <- function(p, vpc_theme, pi = c(0.05, 0.95)) {
   obs_pi_col   <- vpc_theme$obs_ci_color     %||% "#e41a1c"
   obs_med_col  <- vpc_theme$obs_median_color %||% "#377eb8"
@@ -141,7 +141,7 @@ add_vpc_legend <- function(p, vpc_theme, pi = c(0.05, 0.95)) {
 #'   `col` (dataset column), `short` (display label), and `unit` (unit
 #'   string).
 #'
-#' @export
+#' @keywords internal
 build_dataspec <- function(column_map, metadata = list()) {
   dataspec <- list()
   for (std_name in names(column_map)) {
@@ -163,7 +163,7 @@ build_dataspec <- function(column_map, metadata = list()) {
 #'
 #' @return Character. Formatted axis label.
 #'
-#' @export
+#' @keywords internal
 dataspec_label <- function(entry, fallback = "") {
   if (is.null(entry)) return(fallback)
   unit  <- trimws(entry$unit  %||% "")
@@ -187,7 +187,7 @@ dataspec_label <- function(entry, fallback = "") {
 #'
 #' @return Named list with all schema fields populated.
 #'
-#' @export
+#' @keywords internal
 build_vpc_spec <- function(params = list()) {
   list(
     kind             = "vpc_plot",
@@ -231,7 +231,7 @@ build_vpc_spec <- function(params = list()) {
 #'
 #' @return Named list with all per-plot schema fields populated.
 #'
-#' @export
+#' @keywords internal
 build_vpc_plot_spec <- function(plot_params = list()) {
   list(
     title       = plot_params$title       %||% "",
@@ -419,7 +419,7 @@ prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) 
 #' @return Data frame. mrgsolve simulation output with an added `rep`
 #'   column set to `i`.
 #'
-#' @export
+#' @keywords internal
 vpc_worker_fn <- function(i, mod_path, dat, seed = NULL) {
   if (!is.null(seed)) set.seed(seed + i)
   mod <- mrgsolve::mread(mod_path, quiet = TRUE)
@@ -449,7 +449,7 @@ vpc_worker_fn <- function(i, mod_path, dat, seed = NULL) {
 #' @return Character. Path to the worker-log directory. The directory is not
 #'   created; [run_vpc_sim()] creates it when it runs in `"hpc"` mode.
 #'
-#' @export
+#' @keywords internal
 vpc_sge_log_dir <- function(mod_path) {
   # nzchar(NA_character_) is TRUE, so NA has to be rejected separately or an
   # NA model path would silently produce "NA/vpc_sge_logs".

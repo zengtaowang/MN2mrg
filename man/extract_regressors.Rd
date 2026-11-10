@@ -16,3 +16,4 @@ Character vector of regressor variable names.
 Locate all lines that mention \code{regressor} and return the (unique) names
 on the left-hand side of the assignment.
 }
+\keyword{internal}

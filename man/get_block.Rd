@@ -23,3 +23,4 @@ stopping at the next block boundary. Library-model concatenation can
 produce multiple headers with the same label; all are merged in file
 order.
 }
+\keyword{internal}

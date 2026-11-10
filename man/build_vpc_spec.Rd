@@ -22,3 +22,4 @@ serialised with \code{\link[yaml:write_yaml]{yaml::write_yaml()}} for regulatory
 fields are optional and fall back to defaults appropriate for a typical
 VPC.
 }
+\keyword{internal}

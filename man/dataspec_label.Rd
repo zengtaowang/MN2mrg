@@ -18,3 +18,4 @@ Character. Formatted axis label.
 Render \code{"Label (unit)"} when the entry carries a unit, otherwise just the
 label; return \code{fallback} when the entry is \code{NULL}.
 }
+\keyword{internal}

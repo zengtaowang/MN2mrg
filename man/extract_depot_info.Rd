@@ -21,3 +21,4 @@ the bioavailability/duration/lag lines that belong in mrgsolve's \verb{$MAIN},
 first-order depot ODEs, and (d) the absorption terms that must be added
 to each target compartment's ODE.
 }
+\keyword{internal}

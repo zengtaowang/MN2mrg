@@ -18,3 +18,4 @@ collide with global C++ functions pulled in by mrgsolve headers, appending
 \verb{_p} (for "parameter") to disambiguate. Word-boundary matching leaves
 suffixed forms like \code{gamma_pop} or \code{omega_gamma} untouched.
 }
+\keyword{internal}

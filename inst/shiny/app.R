@@ -6,6 +6,26 @@ options(shiny.maxRequestSize = 100 * 1024^2)  # 100 MB upload limit
 # --- chain has been retired.
 library(MN2mrg)
 
+# --- Internal helpers: not exported, so library() does not attach them.
+# --- Bind them from the namespace so the calls below stay unqualified.
+local({
+  internal_fns <- c(
+    "apply_mlx_filter_conditions", "apply_nonmem_ignore_rules",
+    "build_forest_covariates", "build_forest_data_spec",
+    "build_forest_endpoints", "build_forest_regimen",
+    "build_forest_uncertainty", "build_forest_yaml_spec",
+    "build_vpc_plot_spec", "derive_ext_from_cov",
+    "get_forest_covariate_candidates", "parse_label_list",
+    "parse_mlx_dataset_filters", "parse_nonmem_datafile",
+    "parse_nonmem_ignore", "parse_numeric_values",
+    "prepare_monolix_dataset", "resolve_lib_model_path",
+    "run_forest_job", "setup_forest_dir", "validate_bootstrap_thetas",
+    "vpc_sge_log_dir", "zip_forest_bundle"
+  )
+  list2env(mget(internal_fns, envir = asNamespace("MN2mrg")),
+           envir = parent.env(environment()))
+})
+
 # --- Shiny UI + framework packages (Depends-propagation does not auto-attach
 # --- in an installed-package Shiny run, so these must still be library()'d).
 library(shiny)
@@ -1543,9 +1563,9 @@ server <- function(input, output, session) {
   observeEvent(input$nm_create_plot, {
     nm_verify_msg("Running verification...")
 
-    # Parse $DATA IGNORE rules once and let verifyModel() do the row-filtering
+    # Parse $DATA IGNORE rules once and let verify_translation() do the row-filtering
     # (ignore_chars / ignore_nonnumeric) internally -- mirrors the skill's
-    # verifyModel() so filtering isn't duplicated/reimplemented here.
+    # verify_translation() so filtering isn't duplicated/reimplemented here.
     ctl_path  <- nm_ctlFile()
     nm_ignore <- if (nchar(ctl_path) > 0 && file.exists(ctl_path))
       parse_nonmem_ignore(readLines(ctl_path, warn = FALSE))
@@ -1553,7 +1573,7 @@ server <- function(input, output, session) {
       list(conditions = character(0), ignore_chars = character(0), ignore_nonnumeric = FALSE)
 
     result <- tryCatch(
-      verifyModel(
+      verify_translation(
         model             = input$nm_model_editor,
         dataset           = nm_datFile(),
         table             = nm_tabFile(),

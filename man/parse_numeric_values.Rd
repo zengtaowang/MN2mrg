@@ -16,3 +16,4 @@ Numeric vector.
 Split \code{"1, 2.5, 5"} into \code{c(1, 2.5, 5)}, dropping empty tokens and
 silently coercing unparseable tokens to \code{NA}.
 }
+\keyword{internal}

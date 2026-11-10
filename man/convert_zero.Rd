@@ -15,6 +15,7 @@ convert_zero(.x)
 \description{
 NONMEM treats missing values as zero when reading a dataset. This helper
 mirrors that behaviour after a numeric coercion has produced NAs. Used in
-\code{\link[=verifyModel]{verifyModel()}} on every dataset column before comparison with the
+\code{\link[=verify_translation]{verify_translation()}} on every dataset column before comparison with the
 NONMEM table output.
 }
+\keyword{internal}

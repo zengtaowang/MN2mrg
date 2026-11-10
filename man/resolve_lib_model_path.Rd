@@ -27,3 +27,4 @@ internal path in this file, which worked only on the network,
 and a \verb{LIB_MODEL_STRUCTURAL/} placeholder in \code{inst/shiny/app.R}, which was
 never wired to any real location and so resolved nowhere at all.
 }
+\keyword{internal}

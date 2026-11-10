@@ -17,3 +17,4 @@ Mirror forest.R's own naive substring replace of \code{"cov"} -> \code{"ext"} in
 the covariance-file path so the UI can display the derived path to the
 user before it is actually used.
 }
+\keyword{internal}

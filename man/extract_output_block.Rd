@@ -16,3 +16,4 @@ no OUTPUT block exists.
 \description{
 Extract the OUTPUT block of a Monolix model
 }
+\keyword{internal}

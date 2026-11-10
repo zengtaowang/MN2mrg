@@ -18,3 +18,4 @@ with their float equivalents (\code{2} -> \code{2.0}) so that mrgsolve's C++ cod
 generator does not perform integer division. Scientific notation is
 protected during the pass.
 }
+\keyword{internal}

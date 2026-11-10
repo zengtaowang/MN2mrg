@@ -33,7 +33,7 @@
 #' a model object in `R/`.
 #'
 #' @importMethodsFrom mrgsolve as.list
-#' @export
+#' @keywords internal
 get_forest_covariate_candidates <- function(mod) {
   pnames <- forest_param_names(param(mod))
   pnames[!grepl("^THETA", pnames)]
@@ -79,7 +79,7 @@ get_forest_covariate_candidates <- function(mod) {
 #' @return Character vector of parameter names; `character()` when `pars`
 #'   carries no names.
 #'
-#' @export
+#' @keywords internal
 forest_param_names <- function(pars) {
   nms <- tryCatch(names(pars), error = function(e) e)
   if (inherits(nms, "error")) {
@@ -103,7 +103,7 @@ forest_param_names <- function(pars) {
 #'
 #' @return Character. Corresponding `.ext` path.
 #'
-#' @export
+#' @keywords internal
 derive_ext_from_cov <- function(cov_path) {
   str_replace(cov_path, "cov", "ext")
 }
@@ -122,7 +122,7 @@ derive_ext_from_cov <- function(cov_path) {
 #'   the missing/extra columns. Returns a string when the bootstrap file
 #'   does not exist.
 #'
-#' @export
+#' @keywords internal
 validate_bootstrap_thetas <- function(boot_csv_path, mod) {
   if (!file.exists(boot_csv_path)) {
     return("Bootstrap file not found.")
@@ -167,7 +167,7 @@ validate_bootstrap_thetas <- function(boot_csv_path, mod) {
 #'
 #' @return Numeric vector.
 #'
-#' @export
+#' @keywords internal
 parse_numeric_values <- function(x) {
   vals <- str_trim(str_split(x, ",")[[1]])
   vals <- vals[vals != ""]
@@ -184,7 +184,7 @@ parse_numeric_values <- function(x) {
 #'
 #' @return Character vector of labels.
 #'
-#' @export
+#' @keywords internal
 parse_label_list <- function(x) {
   labs <- str_trim(str_split(x, ",")[[1]])
   labs[labs != ""]
@@ -206,7 +206,7 @@ parse_label_list <- function(x) {
 #'
 #' @return Named list suitable for the `regimen:` section of `forest.yaml`.
 #'
-#' @export
+#' @keywords internal
 build_forest_regimen <- function(type, amt, cmt = 1, ii = 24, addl = 1, tau = 24, pred = "Y") {
   list(type = type, amt = amt, cmt = cmt, ii = ii, addl = addl, tau = tau, pred = pred)
 }
@@ -225,7 +225,7 @@ build_forest_regimen <- function(type, amt, cmt = 1, ii = 24, addl = 1, tau = 24
 #'
 #' @return Named list for the `endpoint:` section of `forest.yaml`.
 #'
-#' @export
+#' @keywords internal
 build_forest_endpoints <- function(selected, labels, param_var = NULL) {
   ends <- setNames(vector("list", length(selected)), selected)
   for (k in selected) {
@@ -250,7 +250,7 @@ build_forest_endpoints <- function(selected, labels, param_var = NULL) {
 #'
 #' @return Named list for the `covariates:` section of `forest.yaml`.
 #'
-#' @export
+#' @keywords internal
 build_forest_covariates <- function(cov_names, references, values_list) {
   covs <- setNames(vector("list", length(cov_names)), cov_names)
   for (cn in cov_names) {
@@ -276,7 +276,7 @@ build_forest_covariates <- function(cov_names, references, values_list) {
 #'
 #' @return Named list for the `uncertainty:` section of `forest.yaml`.
 #'
-#' @export
+#' @keywords internal
 build_forest_uncertainty <- function(method, covariance_path = NULL, bootstrap_path = NULL, bayes_paths = NULL) {
   if (method == "covariance") {
     list(covariance = covariance_path)
@@ -315,7 +315,7 @@ build_forest_uncertainty <- function(method, covariance_path = NULL, bootstrap_p
 #'
 #' @return Named list ready for `yaml::write_yaml()`.
 #'
-#' @export
+#' @keywords internal
 build_forest_yaml_spec <- function(input_model, data_spec, output_directory, output_stem,
                                     nRep, output_filetype = "png", width = 7, height = 7,
                                     text_size = 3.5, shape_size = 2.5,
@@ -354,7 +354,7 @@ build_forest_yaml_spec <- function(input_model, data_spec, output_directory, out
 #'
 #' @return Named list ready for `yaml::write_yaml()`.
 #'
-#' @export
+#' @keywords internal
 build_forest_data_spec <- function(cov_meta) {
   spec <- list()
   for (cn in names(cov_meta)) {
@@ -381,7 +381,7 @@ build_forest_data_spec <- function(cov_meta) {
 #'
 #' @return `outdir`, returned invisibly.
 #'
-#' @export
+#' @keywords internal
 setup_forest_dir <- function(outdir) {
   if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
@@ -418,7 +418,7 @@ setup_forest_dir <- function(outdir) {
 #'   job.
 #'
 #' @importFrom callr r_bg
-#' @export
+#' @keywords internal
 run_forest_job <- function(outdir) {
   log_path <- file.path(outdir, "forest_run.log")
   callr::r_bg(
@@ -455,7 +455,7 @@ run_forest_job <- function(outdir) {
 #' @return `zip_path`, invisibly.
 #'
 #' @importFrom withr with_dir
-#' @export
+#' @keywords internal
 zip_forest_bundle <- function(outdir, zip_path) {
   zip_path <- normalizePath(zip_path, mustWork = FALSE)
   files <- c("forest.R", "forest.yaml", ".here", "data_spec.yaml")

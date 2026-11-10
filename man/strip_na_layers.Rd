@@ -18,3 +18,4 @@ aesthetic (\code{ymin} or \code{y}) is \code{NA}. Used to clean up the legend-on
 layers that would otherwise leave empty visual artifacts in the rendered
 plot.
 }
+\keyword{internal}

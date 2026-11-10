@@ -24,3 +24,4 @@ Step 0 and by the app.R ETA-lookup code, both of which must filter the
 same rows before deriving any \code{as.factor()}-based numeric ID encoding
 from the data (the encoding depends on the set of unique values present).
 }
+\keyword{internal}

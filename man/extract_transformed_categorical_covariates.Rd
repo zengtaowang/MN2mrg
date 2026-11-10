@@ -18,3 +18,4 @@ Given the covariate-formula container from a Monolix parse, return
 structured information about transformed categorical covariates:
 reference levels, source columns, all categories, and category mappings.
 }
+\keyword{internal}

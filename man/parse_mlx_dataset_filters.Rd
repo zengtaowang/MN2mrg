@@ -35,3 +35,4 @@ Defensive by design: missing file/sections, no active filter, or an
 unparseable \verb{[FILTER]} block all return empty vectors rather than
 erroring.
 }
+\keyword{internal}

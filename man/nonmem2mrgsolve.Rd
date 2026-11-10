@@ -27,7 +27,7 @@ was passed through unchanged).
 High-level entry point that parses a NONMEM control (\code{.ctl} or \code{.mod})
 file plus its \code{.ext} final-estimates table and emits an mrgsolve C++
 model source. Detects the \verb{$SUBROUTINE}/\code{ADVAN} model form, translates
-each of \verb{$PRED}, \verb{$PK}, \verb{$DES}, and \verb{$ERROR} via \code{\link[=parseCodeBlock]{parseCodeBlock()}},
+each of \verb{$PRED}, \verb{$PK}, \verb{$DES}, and \verb{$ERROR} via \code{\link[=parse_code_block]{parse_code_block()}},
 constructs \verb{$PARAM}/\verb{$OMEGA}/\verb{$SIGMA} from the final estimates in
 \code{extFile} (or leaves them empty when \code{nmext = TRUE}), and writes the
 assembled \code{.cpp} to a scratch file that is then round-tripped through

@@ -48,3 +48,4 @@ A \code{names()} failure is still reported with the class that caused it and the
 mrgsolve version in play, rather than as a bare coercion message, because
 the original report could not be diagnosed from what the UI showed.
 }
+\keyword{internal}

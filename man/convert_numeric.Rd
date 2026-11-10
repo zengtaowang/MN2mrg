@@ -15,6 +15,7 @@ Numeric vector of the same length as \code{.x}; unparseable entries are
 }
 \description{
 Wrapper around \code{as.numeric(as.character(.x))} that suppresses the coercion
-warning. Used inside \code{\link[=verifyModel]{verifyModel()}} when normalising a NONMEM dataset
+warning. Used inside \code{\link[=verify_translation]{verify_translation()}} when normalising a NONMEM dataset
 before merging with mrgsolve simulation output.
 }
+\keyword{internal}

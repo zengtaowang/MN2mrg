@@ -17,3 +17,4 @@ Remove everything from the first \verb{;} or \verb{//} to the end of the string.
 Used as the first pass over every parsed model line before further syntax
 translation.
 }
+\keyword{internal}

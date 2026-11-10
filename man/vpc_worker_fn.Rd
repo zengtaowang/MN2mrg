@@ -35,3 +35,4 @@ retained but switched off for this release. The default \code{"local"} path
 does not call this function: it reuses one already-\code{mread()}ed model
 rather than re-reading it per replicate.
 }
+\keyword{internal}

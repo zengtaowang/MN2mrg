@@ -19,3 +19,4 @@ Named list ready for \code{yaml::write_yaml()}.
 Assemble a yspec-compatible data specification from a named list of
 per-covariate metadata entries.
 }
+\keyword{internal}

@@ -16,3 +16,4 @@ whole input if \verb{[LONGITUDINAL]} is not present.
 \description{
 Return the lines of a Monolix model file starting at \link{LONGITUDINAL}
 }
+\keyword{internal}

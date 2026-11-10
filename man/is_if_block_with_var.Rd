@@ -19,3 +19,4 @@ is_if_block_with_var(block_lines, vars)
 Used when deciding whether an if/elseif/else block belongs in the ODE
 block (because it touches a time-varying variable).
 }
+\keyword{internal}

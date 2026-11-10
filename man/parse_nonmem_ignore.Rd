@@ -24,3 +24,4 @@ control stream. Inline comments (after \verb{;}) are stripped and fully
 commented lines are skipped before parsing. Comma-separated
 \verb{IGNORE=(cond1, cond2)} forms yield one condition per element.
 }
+\keyword{internal}

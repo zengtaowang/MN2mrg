@@ -23,3 +23,4 @@ Assemble a named list keyed by covariate name, with each entry carrying
 the covariate's \code{reference} value and the \code{values} at which it should be
 perturbed in the forest plot.
 }
+\keyword{internal}

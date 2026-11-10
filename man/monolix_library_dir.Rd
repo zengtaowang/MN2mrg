@@ -45,3 +45,4 @@ resolved source is announced with \code{\link[=message]{message()}} so that a tr
 records which pool the structural model actually came from, rather than
 only that one was found.
 }
+\keyword{internal}

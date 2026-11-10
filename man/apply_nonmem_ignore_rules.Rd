@@ -31,3 +31,4 @@ the file is parsed into a data frame; the condition-based IGNORE=(cond)
 rules are instead applied afterwards as dplyr filters on the parsed
 frame.
 }
+\keyword{internal}

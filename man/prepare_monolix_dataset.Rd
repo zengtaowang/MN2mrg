@@ -38,3 +38,4 @@ zero-order-infusion \code{RATE = -2} flagging via \code{\link[=extract_depot_inf
 transformed-categorical covariate synthesis, raw-categorical encoding,
 MDV filtering, DVID normalisation, and a final sort by ID/TIME.
 }
+\keyword{internal}

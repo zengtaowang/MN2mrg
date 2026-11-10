@@ -28,3 +28,4 @@ OS exit status to distinguish "finished but no plots produced" from a
 real forest.R failure, so we catch the error ourselves and force a
 non-zero exit for the failure to be detected.
 }
+\keyword{internal}

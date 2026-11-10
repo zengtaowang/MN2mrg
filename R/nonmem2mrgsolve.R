@@ -14,8 +14,8 @@
 #'   argument of a `THETA(...)` or `A(...)` expression. If no match is found
 #'   `.string` is returned unchanged and a warning is printed.
 #'
-#' @export
-matchParen <- function(.string, .right = FALSE) {
+#' @keywords internal
+match_paren <- function(.string, .right = FALSE) {
   .string <- gsub(" ", "", .string, fixed = TRUE)
   x <- rep(0, nchar(.string))
   ind <- 1:nchar(.string)
@@ -65,8 +65,8 @@ matchParen <- function(.string, .right = FALSE) {
 #' @return Character vector of the same length as `string`, containing the
 #'   translated C++ lines.
 #'
-#' @export
-convertCode <- function(string) {
+#' @keywords internal
+convert_code <- function(string) {
   outString <- purrr::map(string, function(.s) {
     out <- stringr::str_trim(.s)
     startEmpty <- !stringr::str_detect(out, "\\S")
@@ -103,14 +103,14 @@ convertCode <- function(string) {
         if (is.na(two)) break
 
         if (stringr::str_sub(one, nchar(one), nchar(one)) == ")") {
-          base <- matchParen(one, .right = TRUE)
+          base <- match_paren(one, .right = TRUE)
         } else {
           base <- stringr::str_split_i(one, "[+\\-*/=]", -1)
           base <- gsub("^[^a-zA-Z0-9_.]+", "", base)
         }
 
         if (stringr::str_sub(two, 1, 1) == "(") {
-          pow <- matchParen(two, .right = FALSE)
+          pow <- match_paren(two, .right = FALSE)
         } else {
           pow <- stringr::str_split_i(two, "[+\\-*/=]", 1)
           pow <- gsub("[^a-zA-Z0-9_.]+$", "", pow)
@@ -135,7 +135,7 @@ convertCode <- function(string) {
 #'
 #' Locate the `$block` header inside a NONMEM control-stream character
 #' vector, extract the lines up to (but not including) the next `$...`
-#' header, and pass them through [convertCode()] for Fortran-to-C++
+#' header, and pass them through [convert_code()] for Fortran-to-C++
 #' translation.
 #'
 #' @param ctl Character vector. The full NONMEM control stream (typically the
@@ -146,14 +146,14 @@ convertCode <- function(string) {
 #' @return Character vector of translated code lines from the requested block,
 #'   or `NULL` if the block does not appear in `ctl`.
 #'
-#' @export
-parseCodeBlock <- function(ctl, block) {
+#' @keywords internal
+parse_code_block <- function(ctl, block) {
   numRow <- 1:length(ctl)
   allBlock <- numRow[stringr::str_detect(ctl, "\\$")]
   if (any(stringr::str_detect(ctl, block))) {
     begin <- numRow[stringr::str_detect(ctl, block)] + 1
     end   <- allBlock[allBlock > begin][1] - 1
-    out   <- convertCode(ctl[begin:end])
+    out   <- convert_code(ctl[begin:end])
     return(out)
   }
 }
@@ -163,7 +163,7 @@ parseCodeBlock <- function(ctl, block) {
 #' High-level entry point that parses a NONMEM control (`.ctl` or `.mod`)
 #' file plus its `.ext` final-estimates table and emits an mrgsolve C++
 #' model source. Detects the `$SUBROUTINE`/`ADVAN` model form, translates
-#' each of `$PRED`, `$PK`, `$DES`, and `$ERROR` via [parseCodeBlock()],
+#' each of `$PRED`, `$PK`, `$DES`, and `$ERROR` via [parse_code_block()],
 #' constructs `$PARAM`/`$OMEGA`/`$SIGMA` from the final estimates in
 #' `extFile` (or leaves them empty when `nmext = TRUE`), and writes the
 #' assembled `.cpp` to a scratch file that is then round-tripped through
@@ -279,10 +279,10 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
   )
 
   ## grab contents of $PRED, $PK, $DES, and $ERROR, if they exist
-  pred <- parseCodeBlock(ctl, block = "\\$PRED")
-  pk <- parseCodeBlock(ctl, block = "\\$PK")
-  des <- parseCodeBlock(ctl, block = "\\$DES")
-  err <- parseCodeBlock(ctl, block = "\\$ERROR")
+  pred <- parse_code_block(ctl, block = "\\$PRED")
+  pk <- parse_code_block(ctl, block = "\\$PK")
+  des <- parse_code_block(ctl, block = "\\$DES")
+  err <- parse_code_block(ctl, block = "\\$ERROR")
 
   ## figure out what variables are defined in $PK or $PRED for use later
   predPK <- c(pred, pk)
@@ -294,7 +294,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
     ## strip out IF statements
     if (out != "") {
       if (stringr::str_starts(out, "if\\(")) {
-        ifState <- matchParen(substring(out, 3), .right = FALSE)
+        ifState <- match_paren(substring(out, 3), .right = FALSE)
         out <- gsub(paste0("if", ifState), "", out, fixed = TRUE)
       }
     }
@@ -341,7 +341,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
         out <- gsub("\\{", "", out)
         out <- gsub("\\}", "", out)
         if (stringr::str_starts(out, "if\\(")) {
-          ifState <- matchParen(substring(out, 3), .right = FALSE)
+          ifState <- match_paren(substring(out, 3), .right = FALSE)
           out <- gsub(paste0("if", ifState), "", out, fixed = TRUE)
         }
         if (stringr::str_detect(out, "=")) {
@@ -363,7 +363,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
       out <- gsub("\\{", "", out)
       out <- gsub("\\}", "", out)
       if (stringr::str_starts(out, "if\\(")) {
-        ifState <- matchParen(substring(out, 3), .right = FALSE)
+        ifState <- match_paren(substring(out, 3), .right = FALSE)
         out <- gsub(paste0("if", ifState), "", out, fixed = TRUE)
       }
       if (stringr::str_detect(out, "=")) {
@@ -451,7 +451,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
   if (!is.null(varErr))  cpp <- c(cpp, "$CAPTURE", varErr)
 
   ## write out mrgsolve file and compile it to check for errors
-  tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+  tmpFile <- tempfile("mod", fileext = ".cpp")
   write(cpp, file = tmpFile, append = FALSE, sep = "\n")
   e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                error = function(e) { message(e$message) },
@@ -499,7 +499,7 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
       if (!is.null(varErr))  cpp <- c(cpp, "$CAPTURE", varErr)
       cpp <- paste(cpp, collapse = "\n")
 
-      tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999, size = 1), ".cpp"))
+      tmpFile <- tempfile("mod", fileext = ".cpp")
       write(cpp, file = tmpFile, append = FALSE, sep = "\n")
       e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                    error = function(e) { message(e$message) },
@@ -564,10 +564,10 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
 #' @return A list with `code` (the input `cpp`) and `message` (a
 #'   compile-status message).
 #'
-#' @export
+#' @keywords internal
 compile_cpp <- function(cpp) {
 
-  tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+  tmpFile <- tempfile("mod", fileext = ".cpp")
   write(cpp, file = tmpFile, append = FALSE, sep = "\n")
   e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
                                error = function(e) { message(e$message) },
@@ -587,7 +587,7 @@ compile_cpp <- function(cpp) {
 #' Coerce a value to numeric, silently returning NA on failure
 #'
 #' Wrapper around `as.numeric(as.character(.x))` that suppresses the coercion
-#' warning. Used inside [verifyModel()] when normalising a NONMEM dataset
+#' warning. Used inside [verify_translation()] when normalising a NONMEM dataset
 #' before merging with mrgsolve simulation output.
 #'
 #' @param .x A vector to coerce.
@@ -595,7 +595,7 @@ compile_cpp <- function(cpp) {
 #' @return Numeric vector of the same length as `.x`; unparseable entries are
 #'   `NA`.
 #'
-#' @export
+#' @keywords internal
 convert_numeric <- function(.x) {
   suppressWarnings(
     as.numeric(as.character(.x))
@@ -606,14 +606,14 @@ convert_numeric <- function(.x) {
 #'
 #' NONMEM treats missing values as zero when reading a dataset. This helper
 #' mirrors that behaviour after a numeric coercion has produced NAs. Used in
-#' [verifyModel()] on every dataset column before comparison with the
+#' [verify_translation()] on every dataset column before comparison with the
 #' NONMEM table output.
 #'
 #' @param .x A vector.
 #'
 #' @return `.x` with `NA` entries replaced by `0`.
 #'
-#' @export
+#' @keywords internal
 convert_zero <- function(.x) {
   ifelse(is.na(.x), 0, .x)
 }
@@ -655,7 +655,7 @@ convert_zero <- function(.x) {
 #'   `message` (character vector describing the outcome).
 #'
 #' @export
-verifyModel <- function(model, dataset, table, table2 = NULL, filters,
+verify_translation <- function(model, dataset, table, table2 = NULL, filters,
                         ignore_chars = character(0), ignore_nonnumeric = FALSE,
                         censor_filter = NULL) {
 
@@ -663,7 +663,7 @@ verifyModel <- function(model, dataset, table, table2 = NULL, filters,
   if (file.exists(model)) {
     tmpFile <- model
   } else {
-    tmpFile <- file.path("/var/tmp", paste0("mod", sample(1:999999999, size = 1), ".cpp"))
+    tmpFile <- tempfile("mod", fileext = ".cpp")
     write(model, file = tmpFile, append = FALSE, sep = "\n")
   }
 

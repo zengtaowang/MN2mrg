@@ -22,3 +22,4 @@ match the model's THETA parameters; unmatched model THETAs are silently
 left at their \verb{$PARAM} default. Surface any mismatch to the user
 explicitly.
 }
+\keyword{internal}
