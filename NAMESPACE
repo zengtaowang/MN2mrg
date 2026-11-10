@@ -2,7 +2,7 @@
 
 export(init_quarto)
 export(monolix2mrgsolve)
-export(monolix_vpc_opts)
+export(monolix_dataset_opts)
 export(nonmem2mrgsolve)
 export(plot_quarto)
 export(prep_vpc_dataset)

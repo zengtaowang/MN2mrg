@@ -2249,7 +2249,7 @@ server <- function(input, output, session) {
       # Same Monolix dataset-prep options as the VPC tab, including
       # filter_mdv. The MDV==1 observation rows it drops are rows
       # filter_obs_rows() below excludes anyway and predictions.txt omits.
-      mlx_opts <- monolix_vpc_opts(model_data$mlxtran_path, input$monolix_path)
+      mlx_opts <- monolix_dataset_opts(model_data$mlxtran_path, input$monolix_path)
       mlx_opts$filter_mdv <- TRUE
       raw_dat <- apply_mlx_filter_conditions(raw_dat, mlx_opts$mlx_filter_conditions)
 
@@ -3466,7 +3466,7 @@ server <- function(input, output, session) {
       )
 
       if (mode == "monolix") {
-        opts <- c(opts, monolix_vpc_opts(model_data$mlxtran_path,
+        opts <- c(opts, monolix_dataset_opts(model_data$mlxtran_path,
                                          input$monolix_path,
                                          bql_col = input$vpc_bql_column))
       }
@@ -4498,7 +4498,7 @@ vpc.yaml <- function(yaml) {
 '
 
       s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  opts <- monolix_vpc_opts(vpcspec$monolix_project, vpcspec$monolix_path,
+  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path,
                            bql_col = vpcspec$bql_column)
   prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix", opts = opts)
   dat  <- prep$data
@@ -4598,7 +4598,7 @@ vpc.yaml <- function(yaml) {
   # Bundles the YAML config, standalone R script and (for HPC mode) the SGE
   # template into a single zip for reproducibility. The script calls
   # library(MN2mrg) for its helpers. For Monolix, the script rebuilds the
-  # prep_vpc_dataset() opts with monolix_vpc_opts() from the YAML's project and
+  # prep_vpc_dataset() opts with monolix_dataset_opts() from the YAML's project and
   # MonolixSuite paths. sge.tmpl is shipped from inst/extdata/.
   output$download_vpc_bundle <- downloadHandler(
     filename = function() "vpc_bundle.zip",

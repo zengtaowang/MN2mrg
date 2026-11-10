@@ -512,14 +512,14 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
   list(conditions = conditions, description = description)
 }
 
-#' Build the `opts` list that `prep_vpc_dataset()` needs for a Monolix project
+#' Build the dataset-preparation `opts` list for a Monolix project
 #'
 #' Loads the Monolix project through `lixoftConnectors` and collects what the
 #' Monolix path of [prep_vpc_dataset()] reads: the cleaned structural model,
 #' covariate and data information, the DVID mapping and the project's
 #' `[FILTER]` conditions. The Shiny app calls this same function for its VPC
-#' tab and for the reproducibility bundle, so a script prepares the dataset
-#' exactly as the app does.
+#' tab, the Verification tab and the reproducibility bundle, so a script
+#' prepares the dataset exactly as the app does.
 #'
 #' Requires a MonolixSuite installation, because `lixoftConnectors` ships with
 #' MonolixSuite rather than CRAN. The raw dataset path is in
@@ -537,16 +537,16 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
 #'
 #' @examples
 #' \dontrun{
-#' opts <- monolix_vpc_opts("run14.mlxtran", "/path/to/MonolixSuite2024R1")
+#' opts <- monolix_dataset_opts("run14.mlxtran", "/path/to/MonolixSuite2024R1")
 #' raw  <- data.table::fread(opts$data_info$dataFile, na.strings = ".")
 #' prep <- prep_vpc_dataset(raw, column_map = list(), mode = "monolix",
 #'                          opts = opts)
 #' }
 #'
 #' @export
-monolix_vpc_opts <- function(project_path, monolix_path, bql_col = NULL) {
+monolix_dataset_opts <- function(project_path, monolix_path, bql_col = NULL) {
   if (!requireNamespace("lixoftConnectors", quietly = TRUE)) {
-    stop("monolix_vpc_opts() requires the lixoftConnectors package, which ",
+    stop("monolix_dataset_opts() requires the lixoftConnectors package, which ",
          "ships with MonolixSuite and is not installed.", call. = FALSE)
   }
   if (!file.exists(project_path)) {
