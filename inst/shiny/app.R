@@ -1197,38 +1197,6 @@ server <- function(input, output, session) {
   })
   
   # ============================================================
-  # SHARED DATASET PREPROCESSING HELPER
-  # Collects all lixoftConnectors info, then delegates to prepare_monolix_dataset()
-  # in UTILS/vpc_utils.R for column remapping, covariate encoding (including Monolix
-  # transformed categoricals like tSPECIES), CMT assignment, DVID handling, and sort.
-  # ============================================================
-
-  prepare_mlx_dataset <- function(input_data, model_data) {
-
-    structural_path <- getStructuralModel()
-    # resolve_lib_model_path() maps a "lib:" reference into the Monolix
-    # library-model directory and passes any other path straight through, so
-    # the branch this replaced is no longer needed. The branch it replaced
-    # substituted a literal "LIB_MODEL_STRUCTURAL/" prefix, which is not a
-    # directory, an option or an environment variable anywhere in this
-    raw_lines <- readLines(resolve_lib_model_path(structural_path), warn = FALSE)
-    mlxtran_lines <- stringr::str_squish(stringr::str_replace(raw_lines, ";.*$", ""))
-
-    opts <- list(
-      data_info             = getData(),
-      covariate_info        = getCovariateInformation(),
-      mlxtran_lines         = mlxtran_lines,
-      dvid_map              = model_data$dvid_map,
-      has_dvid              = model_data$has_dvid,
-      filter_mdv            = FALSE,
-      mlx_filter_conditions = parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())$conditions
-    )
-
-    result <- prepare_monolix_dataset(input_data, opts)
-    result$data
-  }
-
-  # ============================================================
   # NONMEM TRANSLATION SERVER
   # ============================================================
 
@@ -2260,7 +2228,7 @@ server <- function(input, output, session) {
       # filtering/renaming/sorting. Monolix writes predictions.txt preserving
       # this same raw file order (dropping only excluded rows, e.g. censored
       # obs) -- verified empirically by comparing predictions.txt's (id,time)
-      # sequence against the raw file's. prepare_mlx_dataset()/mrgsim() never
+      # sequence against the raw file's. prepare_monolix_dataset()/mrgsim() never
       # drop or reorder unrecognized columns, and none of the steps between
       # here and mrgsim() duplicate rows, so ROW stays unique and survives all
       # the way to the simulated output via carry_out() below. It doubles as
@@ -2271,19 +2239,19 @@ server <- function(input, output, session) {
       raw_dat <- raw_dat %>% mutate(ROW = row_number())
 
       # Apply the project's [FILTER] block conditions BEFORE deriving
-      # original_ids below. prepare_mlx_dataset() applies these same
+      # original_ids below. prepare_monolix_dataset() applies these same
       # conditions again internally (Step 0), then re-encodes its "id"
       # column via as.numeric(as.factor(ID)) over whatever rows remain --
       # that encoding depends on the SET of unique ID values present, so
       # original_ids must be computed from the identical (already-filtered)
       # row set, not the full unfiltered raw_dat, or the id_lookup built
       # below silently maps every row to the wrong subject (or none).
-      raw_dat <- apply_mlx_filter_conditions(
-        raw_dat,
-        parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())$conditions
-      )
+      # Same Monolix dataset-prep options as the VPC tab (filter_mdv stays off
+      # here: verification keeps MDV rows).
+      mlx_opts <- monolix_vpc_opts(model_data$mlxtran_path, input$monolix_path)
+      raw_dat <- apply_mlx_filter_conditions(raw_dat, mlx_opts$mlx_filter_conditions)
 
-      # Capture original ID column (before prepare_mlx_dataset re-encodes it)
+      # Capture original ID column (before prepare_monolix_dataset re-encodes it)
       # so we can apply the same encoding to eta_df$id when joining ETAs.
       # Monolix labels individual-result files (estimatedRandomEffects.txt,
       # etc.) using the [CONTENT] "identifier" column when the project
@@ -2304,13 +2272,13 @@ server <- function(input, output, session) {
 
       # Occasion column (for IOV designs) -- estimatedRandomEffects.txt keeps the
       # dataset's raw occasion column name (e.g. "dose_cumsum"); dat keeps that
-      # SAME name unchanged (prepare_mlx_dataset no longer renames it), because
+      # SAME name unchanged (prepare_monolix_dataset no longer renames it), because
       # it doubles as the mrgsolve $PARAM occasion-indicator regressor that the
       # translated model's $MAIN cascade reads directly.
       occ_col_raw <- data_info_pre$header[data_info_pre$headerTypes == "occ"]
       if (length(occ_col_raw) != 1) occ_col_raw <- NA_character_
 
-      # prepare_mlx_dataset() (via prepare_monolix_dataset() in vpc_utils.R)
+      # prepare_monolix_dataset()
       # already drops Monolix "ignore"-marked columns/rows internally, before
       # renaming the id-headerType column to "ID" -- re-deriving ignore_col
       # here and filtering dat by it is not just redundant, it's wrong: if a
@@ -2320,7 +2288,7 @@ server <- function(input, output, session) {
       # NEW "ID" grouping column vpc_utils.R created collides on the same
       # name -- so the filter below would silently zero out every row
       # (encoded subject IDs are never 0/NA).
-      dat <- raw_dat %>% prepare_mlx_dataset(model_data)
+      dat <- prepare_monolix_dataset(raw_dat, mlx_opts)$data
 
       # Load ETAs from IndividualParameters/estimatedRandomEffects.txt
       eta_file <- file.path(result_dir, "IndividualParameters",
@@ -2336,7 +2304,7 @@ server <- function(input, output, session) {
 
       # Align eta_df$id encoding with dat$ID. eta_df$id holds the identifier
       # column's raw values -- map those back to dat$ID's numeric encoding.
-      # prepare_mlx_dataset applies as.numeric(as.factor(ID)) to the "id"
+      # prepare_monolix_dataset applies as.numeric(as.factor(ID)) to the "id"
       # column when it isn't already numeric, so reproduce that same mapping
       # here to stay consistent.
       encoded_ids <- if (is.numeric(original_ids)) original_ids else as.numeric(as.factor(original_ids))
@@ -2551,7 +2519,7 @@ server <- function(input, output, session) {
       }
 
       # ROW was tagged on raw_dat before any filter/sort (see above) and
-      # survives untouched through prepare_mlx_dataset()/apply_f_to_rate() --
+      # survives untouched through prepare_monolix_dataset()/apply_f_to_rate() --
       # neither drops unrecognized columns or duplicates rows -- so it's
       # already the raw-file-order key on dat_pred/dat_ipred here. Do NOT
       # reassign it via row_number() at this point: that would renumber by
