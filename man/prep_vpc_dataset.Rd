@@ -29,12 +29,12 @@ categoricals in downstream plotting; empty in NONMEM mode).
 \description{
 Clean and standardise a raw modelling dataset (Monolix or NONMEM) so that
 it can be handed straight to \code{\link[=run_vpc_sim]{run_vpc_sim()}}. The Monolix path delegates
-to \code{\link[=prepare_monolix_dataset]{prepare_monolix_dataset()}} with \code{filter_mdv = TRUE}; \code{ROW} is the row's
-position in the raw file, numbered before any filtering or sorting (so it
-lines up with Monolix's \code{predictions.txt}). The NONMEM path applies \verb{$DATA IGNORE=(cond)} filters
+to \code{\link[=prepare_monolix_dataset]{prepare_monolix_dataset()}} with \code{filter_mdv = TRUE}. The NONMEM path applies \verb{$DATA IGNORE=(cond)} filters
 (before renaming), performs \code{column_map} renaming, coerces numeric
 columns, derives EVID/CMT/DVID when absent, applies MDV filtering
 respecting BQL preservation, drops user-specified ignore columns, drops
 non-CMT character columns (mrgsolve requires numeric data), sorts by
-\code{ID}/\code{TIME}, and attaches \code{ROW} (post-filter row number).
+\code{ID}/\code{TIME}. In both modes \code{ROW} is the row's position in the raw file,
+numbered before any filtering or sorting (it lines up with Monolix's
+\code{predictions.txt}).
 }

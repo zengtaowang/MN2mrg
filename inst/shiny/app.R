@@ -2231,7 +2231,7 @@ server <- function(input, output, session) {
       # mrgsolve row with its predictions.txt row.
       raw_dat  <- raw_dat %>% mutate(ROW = row_number())
       mlx_opts <- monolix_dataset_opts(model_data$mlxtran_path, input$monolix_path)
-      dat      <- prep_vpc_dataset(raw_dat %>% select(-ROW), list(), mode = "monolix",
+      dat      <- prep_vpc_dataset(raw_dat, list(), mode = "monolix",
                                    opts = mlx_opts)$data
 
       # Monolix labels individual-result files (estimatedRandomEffects.txt,
