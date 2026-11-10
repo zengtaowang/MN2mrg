@@ -551,39 +551,6 @@ nonmem2mrgsolve <- function(ctlFile, extFile = NULL, nmext = FALSE) {
   return(list(code = cpp, message = out_message))
 }
 
-#' Compile an mrgsolve C++ model source string
-#'
-#' Write a character-vector `cpp` model source to a scratch `.cpp` file and
-#' round-trip it through [mrgsolve::mread()] to verify it compiles cleanly.
-#' Errors are captured rather than raised so callers can surface a friendly
-#' message in the Shiny UI.
-#'
-#' @param cpp Character vector. mrgsolve model source, typically produced
-#'   by [nonmem2mrgsolve()].
-#'
-#' @return A list with `code` (the input `cpp`) and `message` (a
-#'   compile-status message).
-#'
-#' @keywords internal
-compile_cpp <- function(cpp) {
-
-  tmpFile <- tempfile("mod", fileext = ".cpp")
-  write(cpp, file = tmpFile, append = FALSE, sep = "\n")
-  e <- capture.output(tryCatch(mrgsolve::mread(tmpFile),
-                               error = function(e) { message(e$message) },
-                               warning = function(w) { message(w$message) }),
-                      type = "message")
-
-  if (any(stringr::str_detect(e, "model build step failed"))) {
-    out_message <- c("MRGsolve model did not compile")
-    cat(print(e, collapse = "\n"))
-  } else {
-    out_message <- c("MRGsolve compilation successful")
-  }
-
-  return(list(code = cpp, message = out_message))
-}
-
 #' Coerce a value to numeric, silently returning NA on failure
 #'
 #' Wrapper around `as.numeric(as.character(.x))` that suppresses the coercion

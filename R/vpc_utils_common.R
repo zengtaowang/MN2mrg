@@ -6,7 +6,6 @@
 #
 # Functions exported for use in inst/shiny/app.R:
 #   build_dataspec(column_map, metadata)
-#   build_vpc_spec(params)
 #   build_vpc_plot_spec(plot_params)
 #   prep_vpc_dataset(data, column_map, mode, opts)
 #   run_vpc_sim(mod_path, data, n_rep, n_jobs, carry_list)
@@ -172,49 +171,10 @@ dataspec_label <- function(entry, fallback = "") {
 }
 
 
-#' Assemble a `vpc.yaml`-compatible spec list
-#'
-#' Build a named list matching the top-level `vpc.yaml` schema so it can be
-#' serialised with [yaml::write_yaml()] for regulatory reproducibility. All
-#' fields are optional and fall back to defaults appropriate for a typical
-#' VPC.
-#'
-#' @param params Named list. Recognised keys mirror the on-disk YAML schema:
-#'   `input_filename`, `data_spec`, `input_model`, `output_directory`,
-#'   `output_stem`, `nRep`, `output_filetype`, `width`, `height`,
-#'   `axis.text`, `axis.title`, `strip.text`, `pi_fill`, `med_fill`,
-#'   `quarto_output`, `filters`, and `plots`.
-#'
-#' @return Named list with all schema fields populated.
-#'
-#' @keywords internal
-build_vpc_spec <- function(params = list()) {
-  list(
-    kind             = "vpc_plot",
-    input_filename   = params$input_filename   %||% "",
-    data_spec        = params$data_spec        %||% "",
-    input_model      = params$input_model      %||% "",
-    output_directory = params$output_directory %||% "",
-    output_stem      = params$output_stem      %||% "vpc",
-    nRep             = as.integer(params$nRep  %||% 500L),
-    output_filetype  = params$output_filetype  %||% "png",
-    width            = params$width            %||% 7,
-    height           = params$height           %||% 5,
-    `axis.text`      = params[["axis.text"]]   %||% 11,
-    `axis.title`     = params[["axis.title"]]  %||% 11,
-    `strip.text`     = params[["strip.text"]]  %||% 11,
-    pi_fill          = params$pi_fill          %||% "steelblue3",
-    med_fill         = params$med_fill         %||% "grey60",
-    quarto_output    = isTRUE(params$quarto_output),
-    filters          = params$filters          %||% list(),
-    plots            = params$plots            %||% list()
-  )
-}
-
 #' Build a single plot entry for `vpc_spec$plots`
 #'
 #' Assemble a named list matching the per-plot section of the `vpc.yaml`
-#' schema. Consumed by [build_vpc_spec()] via its `plots` argument, and by
+#' schema. Consumed by
 #' [render_vpc_plot()] to drive stratification, log-axis, censoring, and
 #' cosmetic choices for one panel.
 #'

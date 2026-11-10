@@ -3,9 +3,8 @@
 #
 # These are pure text-parsing helpers over cleaned [LONGITUDINAL] block lines
 # (opts$mlxtran_lines). They are used by two independent features:
-#   - R/translation_utils.R: F_/D_/ALAG_ bioavailability line generation
-#     during Monolix -> mrgsolve translation (via extract_bioavailability(),
-#     which wraps extract_depot_info()).
+#   - R/monolix2mrgsolve.R: F_/D_/ALAG_ bioavailability line generation
+#     during Monolix -> mrgsolve translation (via extract_depot_info()).
 #   - R/vpc_utils_monolix.R: prepare_monolix_dataset()'s ADM->CMT mapping
 #     (via extract_adm_to_target()) and Tk0/D_CMT RATE=-2 dosing detection.
 # Kept in their own file (rather than living in either of the above) so
