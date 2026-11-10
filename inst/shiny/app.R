@@ -2246,9 +2246,11 @@ server <- function(input, output, session) {
       # original_ids must be computed from the identical (already-filtered)
       # row set, not the full unfiltered raw_dat, or the id_lookup built
       # below silently maps every row to the wrong subject (or none).
-      # Same Monolix dataset-prep options as the VPC tab (filter_mdv stays off
-      # here: verification keeps MDV rows).
+      # Same Monolix dataset-prep options as the VPC tab, including
+      # filter_mdv. The MDV==1 observation rows it drops are rows
+      # filter_obs_rows() below excludes anyway and predictions.txt omits.
       mlx_opts <- monolix_vpc_opts(model_data$mlxtran_path, input$monolix_path)
+      mlx_opts$filter_mdv <- TRUE
       raw_dat <- apply_mlx_filter_conditions(raw_dat, mlx_opts$mlx_filter_conditions)
 
       # Capture original ID column (before prepare_monolix_dataset re-encodes it)
