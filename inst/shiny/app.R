@@ -14,7 +14,7 @@ local({
     "build_forest_covariates", "build_forest_data_spec",
     "build_forest_endpoints", "build_forest_regimen",
     "build_forest_uncertainty", "build_forest_yaml_spec",
-    "build_vpc_plot_spec", "derive_ext_from_cov",
+    "build_vpc_plot_spec", "collect_monolix_vpc_opts", "derive_ext_from_cov",
     "get_forest_covariate_candidates", "parse_label_list",
     "parse_mlx_dataset_filters", "parse_nonmem_datafile",
     "parse_nonmem_ignore", "parse_numeric_values",
@@ -3496,16 +3496,10 @@ server <- function(input, output, session) {
       )
 
       if (mode == "monolix") {
-        structural_model_path <- getStructuralModel()
-        structural_model_text <- readLines(resolve_lib_model_path(structural_model_path))
-        opts$mlxtran_lines  <- stringr::str_squish(
-          stringr::str_replace(structural_model_text, ";.*$", ""))
-        opts$covariate_info <- getCovariateInformation()
-        opts$data_info      <- getData()
-        opts$dvid_map       <- model_data$dvid_map
-        opts$has_dvid       <- model_data$has_dvid
-        opts$bql_col        <- input$vpc_bql_column
-        opts$mlx_filter_conditions <- mlx_filters$conditions
+        opts <- c(opts, collect_monolix_vpc_opts(model_data$mlxtran_path,
+                                                 dvid_map = model_data$dvid_map,
+                                                 has_dvid = model_data$has_dvid,
+                                                 bql_col  = input$vpc_bql_column))
       }
 
       # ── Prepare dataset via vpc_utils.R ───────────────────────────────────────
@@ -4062,21 +4056,10 @@ server <- function(input, output, session) {
   # script's prep_vpc_dataset() call is byte-for-byte what the interactive
   # VPC tab would have used (no re-derivation from the .mlxtran on script run).
   build_vpc_monolix_opts <- function() {
-      mlx_filters <- parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())
-
-      structural_model_path <- getStructuralModel()
-      structural_model_text <- readLines(resolve_lib_model_path(structural_model_path))
-
-      list(
-        mlxtran_lines  = stringr::str_squish(
-          stringr::str_replace(structural_model_text, ";.*$", "")),
-        covariate_info = getCovariateInformation(),
-        data_info      = getData(),
-        dvid_map       = model_data$dvid_map,
-        has_dvid       = model_data$has_dvid,
-        bql_col        = input$vpc_bql_column,
-        mlx_filter_conditions = mlx_filters$conditions
-      )
+      collect_monolix_vpc_opts(model_data$mlxtran_path,
+                               dvid_map = model_data$dvid_map,
+                               has_dvid = model_data$has_dvid,
+                               bql_col  = input$vpc_bql_column)
   }
 
   # Download VPC YAML config (Mike's vpc.yaml format for standalone reproducibility)
