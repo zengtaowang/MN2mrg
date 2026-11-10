@@ -317,25 +317,6 @@ identify_time_varying_vars <- function(algebraics, ode_vars) {
   )
 }
 
-#' Test whether an if-block references any of a set of variables
-#'
-#' Used when deciding whether an if/elseif/else block belongs in the ODE
-#' block (because it touches a time-varying variable).
-#'
-#' @param block_lines Character vector. Lines making up a single if-block.
-#' @param vars Character vector. Variable names to search for.
-#'
-#' @return `TRUE` if any name in `vars` appears (word-bounded) inside
-#'   `block_lines`, `FALSE` otherwise.
-#'
-#' @keywords internal
-is_if_block_with_var <- function(block_lines, vars) {
-  if (!length(vars)) return(FALSE)
-  clean_lines <- str_remove(block_lines, "^double\\s+")
-  block_text <- paste(clean_lines, collapse = " ")
-  any(str_detect(block_text, paste0("\\b", vars, "\\b")))
-}
-
 #' Extract the DESCRIPTION section from a Monolix model file
 #'
 #' Return the text on and after `DESCRIPTION:` up to (but not including) the
@@ -364,21 +345,6 @@ extract_description <- function(lines) {
 # extract_depot_info() now live in R/mlx_parse_utils.R (shared with
 # R/vpc_utils_monolix.R). In the installed package they resolve through
 # the same NAMESPACE.
-
-#' Legacy wrapper returning only the bioavailability lines from depot info
-#'
-#' Compatibility shim for callers that only need the F_/D_/ALAG_ lines from
-#' [extract_depot_info()].
-#'
-#' @param clean_lines Character vector. Comment-stripped Monolix model text.
-#'
-#' @return Character vector of bioavailability/duration/lag lines.
-#'
-#' @keywords internal
-extract_bioavailability <- function(clean_lines) {
-  info <- extract_depot_info(clean_lines)
-  info$bioavail_lines
-}
 
 #' Extract ODE definitions from a Monolix EQUATION block
 #'
