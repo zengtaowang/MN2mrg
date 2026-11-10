@@ -517,9 +517,9 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
 #' Loads the Monolix project through `lixoftConnectors` and collects what the
 #' Monolix path of [prep_vpc_dataset()] reads: the cleaned structural model,
 #' covariate and data information, the DVID mapping and the project's
-#' `[FILTER]` conditions. The Shiny app builds the same list for its VPC tab,
-#' so a script calling this function prepares the dataset exactly as the app
-#' does.
+#' `[FILTER]` conditions. The Shiny app calls this same function for its VPC
+#' tab and for the reproducibility bundle, so a script prepares the dataset
+#' exactly as the app does.
 #'
 #' Requires a MonolixSuite installation, because `lixoftConnectors` ships with
 #' MonolixSuite rather than CRAN. The raw dataset path is in
@@ -557,32 +557,6 @@ monolix_vpc_opts <- function(project_path, monolix_path, bql_col = NULL) {
                                                path = monolix_path)
   lixoftConnectors::loadProject(project_path)
 
-  has_dvid <- has_dvid_column()
-  collect_monolix_vpc_opts(
-    project_path,
-    dvid_map = if (has_dvid) extract_dvid_mapping(project_path) else NULL,
-    has_dvid = has_dvid,
-    bql_col  = bql_col
-  )
-}
-
-#' Collect VPC dataset-prep options from the loaded Monolix project
-#'
-#' Does the work of [monolix_vpc_opts()] for a project that is already loaded
-#' in `lixoftConnectors`, with the DVID mapping supplied by the caller. The
-#' Shiny app calls this directly because it holds the mapping from the
-#' translation step and must not reload the project.
-#'
-#' @param project_path Character. Path to the loaded `.mlxtran` project.
-#' @param dvid_map Data frame from the translation components, or `NULL`.
-#' @param has_dvid Logical. Whether the project has an observation-ID column.
-#' @param bql_col Character or `NULL`. Fallback BQL column name.
-#'
-#' @return The `opts` list described in [monolix_vpc_opts()].
-#'
-#' @keywords internal
-collect_monolix_vpc_opts <- function(project_path, dvid_map, has_dvid,
-                                     bql_col = NULL) {
   data_info <- lixoftConnectors::getData()
   id_col <- data_info$header[data_info$headerTypes == "id"]
   if (length(id_col) != 1) id_col <- "ID"
@@ -591,12 +565,14 @@ collect_monolix_vpc_opts <- function(project_path, dvid_map, has_dvid,
     resolve_lib_model_path(lixoftConnectors::getStructuralModel()),
     warn = FALSE)
 
+  has_dvid <- has_dvid_column()
+
   list(
     mlxtran_lines  = stringr::str_squish(
       stringr::str_replace(structural_text, ";.*$", "")),
     covariate_info = lixoftConnectors::getCovariateInformation(),
     data_info      = data_info,
-    dvid_map       = dvid_map,
+    dvid_map       = if (has_dvid) extract_dvid_mapping(project_path) else NULL,
     has_dvid       = has_dvid,
     bql_col        = bql_col %||% "",
     mlx_filter_conditions =

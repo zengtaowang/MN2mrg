@@ -24,9 +24,9 @@ Named list for the \code{opts} argument of \code{\link[=prep_vpc_dataset]{prep_v
 Loads the Monolix project through \code{lixoftConnectors} and collects what the
 Monolix path of \code{\link[=prep_vpc_dataset]{prep_vpc_dataset()}} reads: the cleaned structural model,
 covariate and data information, the DVID mapping and the project's
-\verb{[FILTER]} conditions. The Shiny app builds the same list for its VPC tab,
-so a script calling this function prepares the dataset exactly as the app
-does.
+\verb{[FILTER]} conditions. The Shiny app calls this same function for its VPC
+tab and for the reproducibility bundle, so a script prepares the dataset
+exactly as the app does.
 }
 \details{
 Requires a MonolixSuite installation, because \code{lixoftConnectors} ships with

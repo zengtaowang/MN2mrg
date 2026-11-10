@@ -14,7 +14,7 @@ local({
     "build_forest_covariates", "build_forest_data_spec",
     "build_forest_endpoints", "build_forest_regimen",
     "build_forest_uncertainty", "build_forest_yaml_spec",
-    "build_vpc_plot_spec", "collect_monolix_vpc_opts", "derive_ext_from_cov",
+    "build_vpc_plot_spec", "derive_ext_from_cov",
     "get_forest_covariate_candidates", "parse_label_list",
     "parse_mlx_dataset_filters", "parse_nonmem_datafile",
     "parse_nonmem_ignore", "parse_numeric_values",
@@ -3496,10 +3496,9 @@ server <- function(input, output, session) {
       )
 
       if (mode == "monolix") {
-        opts <- c(opts, collect_monolix_vpc_opts(model_data$mlxtran_path,
-                                                 dvid_map = model_data$dvid_map,
-                                                 has_dvid = model_data$has_dvid,
-                                                 bql_col  = input$vpc_bql_column))
+        opts <- c(opts, monolix_vpc_opts(model_data$mlxtran_path,
+                                         input$monolix_path,
+                                         bql_col = input$vpc_bql_column))
       }
 
       # ── Prepare dataset via vpc_utils.R ───────────────────────────────────────
@@ -4056,10 +4055,8 @@ server <- function(input, output, session) {
   # script's prep_vpc_dataset() call is byte-for-byte what the interactive
   # VPC tab would have used (no re-derivation from the .mlxtran on script run).
   build_vpc_monolix_opts <- function() {
-      collect_monolix_vpc_opts(model_data$mlxtran_path,
-                               dvid_map = model_data$dvid_map,
-                               has_dvid = model_data$has_dvid,
-                               bql_col  = input$vpc_bql_column)
+      monolix_vpc_opts(model_data$mlxtran_path, input$monolix_path,
+                       bql_col = input$vpc_bql_column)
   }
 
   # Download VPC YAML config (Mike's vpc.yaml format for standalone reproducibility)
