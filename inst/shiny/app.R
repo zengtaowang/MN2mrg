@@ -4049,6 +4049,23 @@ server <- function(input, output, session) {
     }
   )
 
+  # Write the VPC YAML; for Monolix, annotate column_map (yaml::write_yaml
+  # cannot emit comments, so the note is inserted after writing).
+  write_vpc_yaml <- function(path) {
+    yaml::write_yaml(build_vpc_yaml_spec(), path)
+    if (!isTRUE(input$vpc_data_source == "nonmem")) {
+      txt <- readLines(path, warn = FALSE)
+      i <- grep("^column_map:", txt)[1]
+      if (!is.na(i)) {
+        txt <- append(txt, c(
+          "# Monolix: only TAD is read from column_map. All other column roles",
+          "# are read directly from the Monolix project (monolix_project below)."
+        ), after = i - 1)
+        writeLines(txt, path)
+      }
+    }
+  }
+
   # Download VPC YAML config (Mike's vpc.yaml format for standalone reproducibility)
   # Shared by download_vpc_yaml and download_vpc_bundle so both stay in sync.
   build_vpc_yaml_spec <- function() {
@@ -4353,7 +4370,7 @@ server <- function(input, output, session) {
   output$download_vpc_yaml <- downloadHandler(
     filename = function() paste0("vpc_config_", Sys.Date(), ".yaml"),
     content = function(file) {
-      yaml::write_yaml(build_vpc_yaml_spec(), file)
+      write_vpc_yaml(file)
     }
   )
 
@@ -4623,7 +4640,7 @@ vpc.yaml <- function(yaml) {
       dir.create(bundle_dir)
       on.exit(unlink(bundle_dir, recursive = TRUE), add = TRUE)
 
-      yaml::write_yaml(build_vpc_yaml_spec(), file.path(bundle_dir, "vpc_config.yaml"))
+      write_vpc_yaml(file.path(bundle_dir, "vpc_config.yaml"))
       writeLines(
         build_vpc_script_text(yaml_filename = "vpc_config.yaml", bundle_template = is_hpc),
         file.path(bundle_dir, "vpc_script.R")
