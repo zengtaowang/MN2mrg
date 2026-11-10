@@ -2224,53 +2224,25 @@ server <- function(input, output, session) {
       input_data_file <- getData()$dataFile
       raw_dat <- data.table::fread(input_data_file, na.strings = ".") %>% as_tibble()
 
-      # Tag each row with its position in the raw dataset file, before any
-      # filtering/renaming/sorting. Monolix writes predictions.txt preserving
-      # this same raw file order (dropping only excluded rows, e.g. censored
-      # obs) -- verified empirically by comparing predictions.txt's (id,time)
-      # sequence against the raw file's. prepare_monolix_dataset()/mrgsim() never
-      # drop or reorder unrecognized columns, and none of the steps between
-      # here and mrgsim() duplicate rows, so ROW stays unique and survives all
-      # the way to the simulated output via carry_out() below. It doubles as
-      # the rejoin key for EVID/DVID/DV_OBS/MDV AND the key for pairing each
-      # mrgsolve row with its predictions.txt row by raw order -- not by value
-      # (ID re-encoding differs from Monolix's own subject ordering, and
-      # matching on TIME risks floating-point precision mismatches).
-      raw_dat <- raw_dat %>% mutate(ROW = row_number())
-
-      # Apply the project's [FILTER] block conditions BEFORE deriving
-      # original_ids below. prepare_monolix_dataset() applies these same
-      # conditions again internally (Step 0), then re-encodes its "id"
-      # column via as.numeric(as.factor(ID)) over whatever rows remain --
-      # that encoding depends on the SET of unique ID values present, so
-      # original_ids must be computed from the identical (already-filtered)
-      # row set, not the full unfiltered raw_dat, or the id_lookup built
-      # below silently maps every row to the wrong subject (or none).
-      # Same Monolix dataset-prep options as the VPC tab, including
-      # filter_mdv. The MDV==1 observation rows it drops are rows
-      # filter_obs_rows() below excludes anyway and predictions.txt omits.
+      # Same dataset prep as the VPC tab. prep_vpc_dataset() numbers rows by
+      # their position in the raw file (ROW) before filtering/sorting, which
+      # is the order Monolix writes predictions.txt in. ROW is therefore the
+      # rejoin key for EVID/DVID/DV_OBS/MDV and the key for pairing each
+      # mrgsolve row with its predictions.txt row.
+      raw_dat  <- raw_dat %>% mutate(ROW = row_number())
       mlx_opts <- monolix_dataset_opts(model_data$mlxtran_path, input$monolix_path)
-      mlx_opts$filter_mdv <- TRUE
-      raw_dat <- apply_mlx_filter_conditions(raw_dat, mlx_opts$mlx_filter_conditions)
+      dat      <- prep_vpc_dataset(raw_dat %>% select(-ROW), list(), mode = "monolix",
+                                   opts = mlx_opts)$data
 
-      # Capture original ID column (before prepare_monolix_dataset re-encodes it)
-      # so we can apply the same encoding to eta_df$id when joining ETAs.
       # Monolix labels individual-result files (estimatedRandomEffects.txt,
       # etc.) using the [CONTENT] "identifier" column when the project
-      # declares one (e.g. USUBJID), not the "id" grouping column -- even
-      # when "id" is numeric (verified: a numeric ID like 21301 shows up in
-      # that file as the USUBJID string). Not every project declares an
-      # "identifier" column, though -- fall back to "id" itself when absent,
-      # since Monolix then labels individual-result rows with "id" directly.
-      # id_col_raw is needed separately regardless: dat$ID (what the mrgsolve
-      # simulation actually joins on) is always derived from the "id" column.
+      # declares one (e.g. USUBJID), else the "id" column. Map those labels to
+      # dat$ID (the encoded id the simulation joins on) through ROW.
       data_info_pre      <- getData()
       id_col_raw         <- data_info_pre$header[data_info_pre$headerTypes == "id"]
       if (length(id_col_raw) != 1) id_col_raw <- "ID"
       identifier_col_raw <- data_info_pre$header[data_info_pre$headerTypes == "identifier"]
       if (length(identifier_col_raw) != 1) identifier_col_raw <- id_col_raw
-      original_ids       <- raw_dat[[id_col_raw]]
-      id_key_vals        <- raw_dat[[identifier_col_raw]]
 
       # Occasion column (for IOV designs) -- estimatedRandomEffects.txt keeps the
       # dataset's raw occasion column name (e.g. "dose_cumsum"); dat keeps that
@@ -2279,18 +2251,6 @@ server <- function(input, output, session) {
       # translated model's $MAIN cascade reads directly.
       occ_col_raw <- data_info_pre$header[data_info_pre$headerTypes == "occ"]
       if (length(occ_col_raw) != 1) occ_col_raw <- NA_character_
-
-      # prepare_monolix_dataset()
-      # already drops Monolix "ignore"-marked columns/rows internally, before
-      # renaming the id-headerType column to "ID" -- re-deriving ignore_col
-      # here and filtering dat by it is not just redundant, it's wrong: if a
-      # RAW column literally named "ID" happens to be the one marked
-      # headerType "ignore" (distinct from whatever column is headerType
-      # "id"), that raw column no longer exists in dat by this point, but the
-      # NEW "ID" grouping column vpc_utils.R created collides on the same
-      # name -- so the filter below would silently zero out every row
-      # (encoded subject IDs are never 0/NA).
-      dat <- prepare_monolix_dataset(raw_dat, mlx_opts)$data
 
       # Load ETAs from IndividualParameters/estimatedRandomEffects.txt
       eta_file <- file.path(result_dir, "IndividualParameters",
@@ -2304,13 +2264,9 @@ server <- function(input, output, session) {
       eta_param <- sub("^eta_(.*)_mode$", "\\1", eta_cols)
       is_iov    <- eta_param %in% model_data$iov_param_names
 
-      # Align eta_df$id encoding with dat$ID. eta_df$id holds the identifier
-      # column's raw values -- map those back to dat$ID's numeric encoding.
-      # prepare_monolix_dataset applies as.numeric(as.factor(ID)) to the "id"
-      # column when it isn't already numeric, so reproduce that same mapping
-      # here to stay consistent.
-      encoded_ids <- if (is.numeric(original_ids)) original_ids else as.numeric(as.factor(original_ids))
-      id_lookup   <- stats::setNames(encoded_ids, as.character(id_key_vals))
+      # Align eta_df$id with dat$ID through the raw-file row of each record.
+      id_key_vals <- raw_dat[[identifier_col_raw]][match(dat$ROW, raw_dat$ROW)]
+      id_lookup   <- stats::setNames(dat$ID, as.character(id_key_vals))
       id_lookup   <- id_lookup[!duplicated(names(id_lookup))]
       eta_df      <- eta_df %>% mutate(id = unname(id_lookup[as.character(id)]))
 

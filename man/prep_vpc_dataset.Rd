@@ -9,8 +9,8 @@ prep_vpc_dataset(data, column_map, mode = "monolix", opts = list())
 \arguments{
 \item{data}{Data frame. Raw dataset already loaded from disk.}
 
-\item{column_map}{Named list. Standard-name-to-source-column mapping;
-ignored in Monolix mode where renaming is driven by
+\item{column_map}{Named list. Standard-name-to-source-column mapping. In
+Monolix mode only the \code{TAD} entry is read; all other roles come from
 \code{opts$data_info$headerTypes}.}
 
 \item{mode}{Character. One of \code{"monolix"} or \code{"nonmem"}; selects the
@@ -29,11 +29,12 @@ categoricals in downstream plotting; empty in NONMEM mode).
 \description{
 Clean and standardise a raw modelling dataset (Monolix or NONMEM) so that
 it can be handed straight to \code{\link[=run_vpc_sim]{run_vpc_sim()}}. The Monolix path delegates
-to \code{\link[=prepare_monolix_dataset]{prepare_monolix_dataset()}} with \code{filter_mdv = TRUE}, then attaches a
-\code{ROW} index. The NONMEM path applies \verb{$DATA IGNORE=(cond)} filters
+to \code{\link[=prepare_monolix_dataset]{prepare_monolix_dataset()}} with \code{filter_mdv = TRUE}; \code{ROW} is the row's
+position in the raw file, numbered before any filtering or sorting (so it
+lines up with Monolix's \code{predictions.txt}). The NONMEM path applies \verb{$DATA IGNORE=(cond)} filters
 (before renaming), performs \code{column_map} renaming, coerces numeric
 columns, derives EVID/CMT/DVID when absent, applies MDV filtering
 respecting BQL preservation, drops user-specified ignore columns, drops
 non-CMT character columns (mrgsolve requires numeric data), sorts by
-\code{ID}/\code{TIME}, and attaches \code{ROW}.
+\code{ID}/\code{TIME}, and attaches \code{ROW} (post-filter row number).
 }
