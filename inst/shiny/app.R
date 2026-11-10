@@ -4049,16 +4049,6 @@ server <- function(input, output, session) {
     }
   )
 
-  # Assemble the Monolix-only `opts` subset that prepare_monolix_dataset()
-  # needs, exactly mirroring the interactive assembly at ~4675-4690 -- called
-  # at bundle-download time and saved as vpc_opts.rds so the downloaded
-  # script's prep_vpc_dataset() call is byte-for-byte what the interactive
-  # VPC tab would have used (no re-derivation from the .mlxtran on script run).
-  build_vpc_monolix_opts <- function() {
-      monolix_vpc_opts(model_data$mlxtran_path, input$monolix_path,
-                       bql_col = input$vpc_bql_column)
-  }
-
   # Download VPC YAML config (Mike's vpc.yaml format for standalone reproducibility)
   # Shared by download_vpc_yaml and download_vpc_bundle so both stay in sync.
   build_vpc_yaml_spec <- function() {
@@ -4349,7 +4339,11 @@ server <- function(input, output, session) {
             show_legend  = isTRUE(input$vpc_show_legend %||% TRUE)
           )
         )
-      ), nm_ig_yaml)
+      ), nm_ig_yaml, if (!is_nonmem) list(
+        monolix_project = normalizePath(model_data$mlxtran_path, mustWork = FALSE),
+        monolix_path    = input$monolix_path,
+        bql_column      = input$vpc_bql_column %||% ""
+      ))
       vpc_yaml
   }
 
@@ -4432,9 +4426,10 @@ library(data.table)
 
 '
         } else {
-'# NOTE: this script requires the MN2mrg package to be installed and
-# vpc_opts.rds living alongside it. Download the "Reproducibility Bundle"
-# (not just this script) to get all of these files together.
+'# NOTE: this script requires the MN2mrg package, a MonolixSuite install
+# (monolix_path in the YAML) and the .mlxtran project (monolix_project in the
+# YAML). Download the "Reproducibility Bundle" (not just this script) to get
+# the script and config together.
 
 '
         }
@@ -4516,13 +4511,9 @@ vpc.yaml <- function(yaml) {
 '
 
       s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  opts_file <- file.path(dirname(normalizePath(yaml)), "vpc_opts.rds")
-  if (!file.exists(opts_file)) {
-    cat(paste0("\nFile ", opts_file, " does not exist!\n\n"))
-    return(invisible(NULL))
-  }
-  prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
-                           opts = readRDS(opts_file))
+  opts <- monolix_vpc_opts(vpcspec$monolix_project, vpcspec$monolix_path,
+                           bql_col = vpcspec$bql_column)
+  prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix", opts = opts)
   dat  <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
 
@@ -4632,10 +4623,9 @@ vpc.yaml <- function(yaml) {
 
   # Bundles the YAML config, standalone R script and (for HPC mode) the SGE
   # template into a single zip for reproducibility. The script calls
-  # library(MN2mrg) for its helpers. For Monolix, also saves the
-  # vpc_opts.rds snapshot so the extracted script reproduces the interactive
-  # prep_vpc_dataset() call without re-parsing the .mlxtran. sge.tmpl is
-  # shipped from inst/extdata/.
+  # library(MN2mrg) for its helpers. For Monolix, the script rebuilds the
+  # prep_vpc_dataset() opts with monolix_vpc_opts() from the YAML's project and
+  # MonolixSuite paths. sge.tmpl is shipped from inst/extdata/.
   output$download_vpc_bundle <- downloadHandler(
     filename = function() "vpc_bundle.zip",
     content = function(file) {
@@ -4651,9 +4641,6 @@ vpc.yaml <- function(yaml) {
         build_vpc_script_text(yaml_filename = "vpc_config.yaml", bundle_template = is_hpc),
         file.path(bundle_dir, "vpc_script.R")
       )
-      if (!is_nonmem) {
-        saveRDS(build_vpc_monolix_opts(), file.path(bundle_dir, "vpc_opts.rds"))
-      }
       if (is_hpc) {
         file.copy(
           system.file("extdata", "sge.tmpl", package = "MN2mrg"),
