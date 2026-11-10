@@ -4271,6 +4271,9 @@ server <- function(input, output, session) {
         output_directory = "vpc_output",
         output_stem      = "vpc",
         nRep             = as.integer(input$vpc_n_sims),
+        seed             = if (is.null(input$vpc_seed) || is.na(input$vpc_seed)) NULL else as.integer(input$vpc_seed),
+        parallel_mode    = vpc_parallel_mode(input),
+        n_jobs           = if (identical(vpc_parallel_mode(input), "hpc")) as.integer(input$vpc_n_jobs) else NULL,
         output_filetype  = "png",
         width            = input$vpc_plot_width  %||% 7,
         height           = input$vpc_plot_height %||% 7,
@@ -4365,9 +4368,6 @@ server <- function(input, output, session) {
   build_vpc_script_text <- function(yaml_filename = NULL, bundle_template = FALSE) {
       is_nonmem        <- isTRUE(input$vpc_data_source == "nonmem")
       dl_parallel_mode <- vpc_parallel_mode(input)
-      dl_seed          <- input$vpc_seed
-      dl_n_jobs        <- if (dl_parallel_mode == "hpc") input$vpc_n_jobs else NULL
-      dl_seed_str      <- if (!is.null(dl_seed) && !is.na(dl_seed)) as.character(dl_seed) else "NULL"
 
       s_header_libs <- if (dl_parallel_mode == "hpc") {
         if (isTRUE(bundle_template)) {
@@ -4548,32 +4548,19 @@ vpc.yaml <- function(yaml) {
   cat("Running", vpcspec$nRep, "simulations...\n")
 
 '
-      s_vpc_sim <- if (dl_parallel_mode == "hpc") {
-        paste0(
-          '  # SGE worker logs go beside the model, which the workers must already\n',
-          '  # be able to read, so the directory is cluster-visible.\n',
-          '  sim_res <- run_vpc_sim(\n',
-          '    mod_path      = vpcspec$input_model,\n',
-          '    data          = dat,\n',
-          '    n_rep         = vpcspec$nRep,\n',
-          '    n_jobs        = ', dl_n_jobs, 'L,\n',
-          '    carry_list    = carry,\n',
-          '    parallel_mode = "hpc",\n',
-          '    seed          = ', dl_seed_str, '\n',
-          '  )\n'
-        )
-      } else {
-        paste0(
-          '  sim_res <- run_vpc_sim(\n',
-          '    mod_path      = vpcspec$input_model,\n',
-          '    data          = dat,\n',
-          '    n_rep         = vpcspec$nRep,\n',
-          '    carry_list    = carry,\n',
-          '    parallel_mode = "local",\n',
-          '    seed          = ', dl_seed_str, '\n',
-          '  )\n'
-        )
-      }
+      s_vpc_sim <- paste0(
+        if (dl_parallel_mode == "hpc")
+          "  # SGE worker logs go beside the model, which the workers must already\n  # be able to read, so the directory is cluster-visible.\n" else "",
+        '  sim_res <- run_vpc_sim(\n',
+        '    mod_path      = vpcspec$input_model,\n',
+        '    data          = dat,\n',
+        '    n_rep         = vpcspec$nRep,\n',
+        '    n_jobs        = vpcspec$n_jobs,\n',
+        '    carry_list    = carry,\n',
+        '    parallel_mode = set_option(vpcspec, "parallel_mode", "local"),\n',
+        '    seed          = vpcspec$seed\n',
+        '  )\n'
+      )
 
       s_vpc_rest_b <- '
   cat("Simulation complete:", nrow(sim_res$sim_df), "rows across", vpcspec$nRep, "reps\n\n")
