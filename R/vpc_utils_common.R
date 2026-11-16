@@ -804,16 +804,29 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
   obs <- dplyr::select(obs, -dplyr::any_of("MDV"))
   sim <- dplyr::select(sim, -dplyr::any_of("MDV"))
 
+  # vpc::vpc() with pred_corr = TRUE and an LLOQ sets values below the LLOQ to
+  # NA and then calls quantile() without na.rm, which errors. Drop those rows
+  # here instead (the same "non-censored data only" result vpc documents);
+  # the censored panel below still gets the full obs/sim.
+  main_obs <- obs
+  main_sim <- sim
+  main_lloq <- lloq_val
+  if (pred_corr && !is.null(lloq_val)) {
+    main_obs  <- dplyr::filter(obs, .data$DV >= lloq_val)
+    main_sim  <- dplyr::filter(sim, .data[[sim_col]] >= lloq_val)
+    main_lloq <- NULL
+  }
+
   # -- Main VPC plot --
   vpc_plot <- vpc::vpc(
-    sim       = sim,
-    obs       = obs,
+    sim       = main_sim,
+    obs       = main_obs,
     sim_cols  = list(idv = time_col, dv = sim_col, pred = "PRED", sim = "rep"),
     obs_cols  = list(idv = time_col, dv = "DV",    pred = "PRED"),
     pred_corr = pred_corr,
     stratify  = stratify_final,
     show      = list(obs_dv = TRUE, obs_ci = TRUE),
-    lloq      = lloq_val,
+    lloq      = main_lloq,
     vpc_theme = vpc_theme,
     smooth    = smooth,
     bins      = bins,
