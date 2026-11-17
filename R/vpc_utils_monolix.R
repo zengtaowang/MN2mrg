@@ -511,3 +511,71 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
   if (!length(conditions)) return(empty)
   list(conditions = conditions, description = description)
 }
+
+#' Build the dataset-preparation `opts` list for a Monolix project
+#'
+#' Loads the Monolix project through `lixoftConnectors` and collects what the
+#' Monolix path of [prep_vpc_dataset()] reads: the cleaned structural model,
+#' covariate and data information, the DVID mapping and the project's
+#' `[FILTER]` conditions. The Shiny app calls this same function for its VPC
+#' tab, the Verification tab and the reproducibility bundle, so a script
+#' prepares the dataset exactly as the app does.
+#'
+#' Requires a MonolixSuite installation, because `lixoftConnectors` ships with
+#' MonolixSuite rather than CRAN. The raw dataset path is in
+#' `opts$data_info$dataFile`.
+#'
+#' @param project_path Character. Path to the `.mlxtran` project file.
+#' @param monolix_path Character. Path to the MonolixSuite installation
+#'   directory, e.g. `"/path/to/MonolixSuite2024R1"`.
+#' @param bql_col Character or `NULL`. Name of the dataset column that flags
+#'   below-quantification observations, if the project has no `cens` column.
+#'
+#' @return Named list for the `opts` argument of [prep_vpc_dataset()] with
+#'   `mlxtran_lines`, `covariate_info`, `data_info`, `dvid_map`, `has_dvid`,
+#'   `bql_col` and `mlx_filter_conditions`.
+#'
+#' @examples
+#' \dontrun{
+#' opts <- monolix_dataset_opts("run14.mlxtran", "/path/to/MonolixSuite2024R1")
+#' raw  <- data.table::fread(opts$data_info$dataFile, na.strings = ".")
+#' prep <- prep_vpc_dataset(raw, column_map = list(), mode = "monolix",
+#'                          opts = opts)
+#' }
+#'
+#' @export
+monolix_dataset_opts <- function(project_path, monolix_path, bql_col = NULL) {
+  if (!requireNamespace("lixoftConnectors", quietly = TRUE)) {
+    stop("monolix_dataset_opts() requires the lixoftConnectors package, which ",
+         "ships with MonolixSuite and is not installed.", call. = FALSE)
+  }
+  if (!file.exists(project_path)) {
+    stop("Monolix project not found: ", project_path, call. = FALSE)
+  }
+
+  lixoftConnectors::initializeLixoftConnectors(software = "monolix",
+                                               path = monolix_path)
+  lixoftConnectors::loadProject(project_path)
+
+  data_info <- lixoftConnectors::getData()
+  id_col <- data_info$header[data_info$headerTypes == "id"]
+  if (length(id_col) != 1) id_col <- "ID"
+
+  structural_text <- readLines(
+    resolve_lib_model_path(lixoftConnectors::getStructuralModel()),
+    warn = FALSE)
+
+  has_dvid <- has_dvid_column()
+
+  list(
+    mlxtran_lines  = stringr::str_squish(
+      stringr::str_replace(structural_text, ";.*$", "")),
+    covariate_info = lixoftConnectors::getCovariateInformation(),
+    data_info      = data_info,
+    dvid_map       = if (has_dvid) extract_dvid_mapping(project_path) else NULL,
+    has_dvid       = has_dvid,
+    bql_col        = bql_col %||% "",
+    mlx_filter_conditions =
+      parse_mlx_dataset_filters(project_path, id_col = id_col)$conditions
+  )
+}

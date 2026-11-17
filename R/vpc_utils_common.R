@@ -232,17 +232,18 @@ build_vpc_plot_spec <- function(plot_params = list()) {
 #'
 #' Clean and standardise a raw modelling dataset (Monolix or NONMEM) so that
 #' it can be handed straight to [run_vpc_sim()]. The Monolix path delegates
-#' to [prepare_monolix_dataset()] with `filter_mdv = TRUE`, then attaches a
-#' `ROW` index. The NONMEM path applies `$DATA IGNORE=(cond)` filters
+#' to [prepare_monolix_dataset()] with `filter_mdv = TRUE`. The NONMEM path applies `$DATA IGNORE=(cond)` filters
 #' (before renaming), performs `column_map` renaming, coerces numeric
 #' columns, derives EVID/CMT/DVID when absent, applies MDV filtering
 #' respecting BQL preservation, drops user-specified ignore columns, drops
 #' non-CMT character columns (mrgsolve requires numeric data), sorts by
-#' `ID`/`TIME`, and attaches `ROW`.
+#' `ID`/`TIME`. In both modes `ROW` is the row's position in the raw file,
+#' numbered before any filtering or sorting (it lines up with Monolix's
+#' `predictions.txt`).
 #'
 #' @param data Data frame. Raw dataset already loaded from disk.
-#' @param column_map Named list. Standard-name-to-source-column mapping;
-#'   ignored in Monolix mode where renaming is driven by
+#' @param column_map Named list. Standard-name-to-source-column mapping. In
+#'   Monolix mode only the `TAD` entry is read; all other roles come from
 #'   `opts$data_info$headerTypes`.
 #' @param mode Character. One of `"monolix"` or `"nonmem"`; selects the
 #'   preparation pipeline.
@@ -257,6 +258,11 @@ build_vpc_plot_spec <- function(plot_params = list()) {
 #'
 #' @export
 prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) {
+
+  # ROW = position in the raw file, numbered before any filtering or sorting.
+  # Monolix writes predictions.txt in this order, so Verification needs it to
+  # pair rows; VPC only uses ROW as a join key.
+  data <- dplyr::mutate(data, ROW = dplyr::row_number())
 
   if (mode != "monolix") {
     # Non-Monolix path (e.g. NONMEM): apply column_map renaming + basic prep.
@@ -333,12 +339,11 @@ prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) 
 
     data <- data %>%
       dplyr::arrange(ID, TIME) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(ROW = dplyr::row_number())
+      dplyr::ungroup()
     return(list(data = data, cat_covariate_all_categories = list()))
   }
 
-  # Monolix path: delegate to unified helper, then add ROW index.
+  # Monolix path: delegate to unified helper.
   opts$filter_mdv <- TRUE
   tad_src <- column_map[["TAD"]]
   if (!is.null(tad_src) && nchar(tad_src) > 0) opts$tad_col <- tad_src
@@ -349,9 +354,7 @@ prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) 
       tad_src %in% names(result$data)) {
     result$data <- dplyr::rename(result$data, TAD = !!rlang::sym(tad_src))
   }
-  result$data     <- result$data %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(ROW = dplyr::row_number())
+  result$data     <- dplyr::ungroup(result$data)
   result
 }
 

@@ -1197,38 +1197,6 @@ server <- function(input, output, session) {
   })
   
   # ============================================================
-  # SHARED DATASET PREPROCESSING HELPER
-  # Collects all lixoftConnectors info, then delegates to prepare_monolix_dataset()
-  # in UTILS/vpc_utils.R for column remapping, covariate encoding (including Monolix
-  # transformed categoricals like tSPECIES), CMT assignment, DVID handling, and sort.
-  # ============================================================
-
-  prepare_mlx_dataset <- function(input_data, model_data) {
-
-    structural_path <- getStructuralModel()
-    # resolve_lib_model_path() maps a "lib:" reference into the Monolix
-    # library-model directory and passes any other path straight through, so
-    # the branch this replaced is no longer needed. The branch it replaced
-    # substituted a literal "LIB_MODEL_STRUCTURAL/" prefix, which is not a
-    # directory, an option or an environment variable anywhere in this
-    raw_lines <- readLines(resolve_lib_model_path(structural_path), warn = FALSE)
-    mlxtran_lines <- stringr::str_squish(stringr::str_replace(raw_lines, ";.*$", ""))
-
-    opts <- list(
-      data_info             = getData(),
-      covariate_info        = getCovariateInformation(),
-      mlxtran_lines         = mlxtran_lines,
-      dvid_map              = model_data$dvid_map,
-      has_dvid              = model_data$has_dvid,
-      filter_mdv            = FALSE,
-      mlx_filter_conditions = parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())$conditions
-    )
-
-    result <- prepare_monolix_dataset(input_data, opts)
-    result$data
-  }
-
-  # ============================================================
   # NONMEM TRANSLATION SERVER
   # ============================================================
 
@@ -2256,71 +2224,33 @@ server <- function(input, output, session) {
       input_data_file <- getData()$dataFile
       raw_dat <- data.table::fread(input_data_file, na.strings = ".") %>% as_tibble()
 
-      # Tag each row with its position in the raw dataset file, before any
-      # filtering/renaming/sorting. Monolix writes predictions.txt preserving
-      # this same raw file order (dropping only excluded rows, e.g. censored
-      # obs) -- verified empirically by comparing predictions.txt's (id,time)
-      # sequence against the raw file's. prepare_mlx_dataset()/mrgsim() never
-      # drop or reorder unrecognized columns, and none of the steps between
-      # here and mrgsim() duplicate rows, so ROW stays unique and survives all
-      # the way to the simulated output via carry_out() below. It doubles as
-      # the rejoin key for EVID/DVID/DV_OBS/MDV AND the key for pairing each
-      # mrgsolve row with its predictions.txt row by raw order -- not by value
-      # (ID re-encoding differs from Monolix's own subject ordering, and
-      # matching on TIME risks floating-point precision mismatches).
-      raw_dat <- raw_dat %>% mutate(ROW = row_number())
+      # Same dataset prep as the VPC tab. prep_vpc_dataset() numbers rows by
+      # their position in the raw file (ROW) before filtering/sorting, which
+      # is the order Monolix writes predictions.txt in. ROW is therefore the
+      # rejoin key for EVID/DVID/DV_OBS/MDV and the key for pairing each
+      # mrgsolve row with its predictions.txt row.
+      raw_dat  <- raw_dat %>% mutate(ROW = row_number())
+      mlx_opts <- monolix_dataset_opts(model_data$mlxtran_path, input$monolix_path)
+      dat      <- prep_vpc_dataset(raw_dat, list(), mode = "monolix",
+                                   opts = mlx_opts)$data
 
-      # Apply the project's [FILTER] block conditions BEFORE deriving
-      # original_ids below. prepare_mlx_dataset() applies these same
-      # conditions again internally (Step 0), then re-encodes its "id"
-      # column via as.numeric(as.factor(ID)) over whatever rows remain --
-      # that encoding depends on the SET of unique ID values present, so
-      # original_ids must be computed from the identical (already-filtered)
-      # row set, not the full unfiltered raw_dat, or the id_lookup built
-      # below silently maps every row to the wrong subject (or none).
-      raw_dat <- apply_mlx_filter_conditions(
-        raw_dat,
-        parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())$conditions
-      )
-
-      # Capture original ID column (before prepare_mlx_dataset re-encodes it)
-      # so we can apply the same encoding to eta_df$id when joining ETAs.
       # Monolix labels individual-result files (estimatedRandomEffects.txt,
       # etc.) using the [CONTENT] "identifier" column when the project
-      # declares one (e.g. USUBJID), not the "id" grouping column -- even
-      # when "id" is numeric (verified: a numeric ID like 21301 shows up in
-      # that file as the USUBJID string). Not every project declares an
-      # "identifier" column, though -- fall back to "id" itself when absent,
-      # since Monolix then labels individual-result rows with "id" directly.
-      # id_col_raw is needed separately regardless: dat$ID (what the mrgsolve
-      # simulation actually joins on) is always derived from the "id" column.
+      # declares one (e.g. USUBJID), else the "id" column. Map those labels to
+      # dat$ID (the encoded id the simulation joins on) through ROW.
       data_info_pre      <- getData()
       id_col_raw         <- data_info_pre$header[data_info_pre$headerTypes == "id"]
       if (length(id_col_raw) != 1) id_col_raw <- "ID"
       identifier_col_raw <- data_info_pre$header[data_info_pre$headerTypes == "identifier"]
       if (length(identifier_col_raw) != 1) identifier_col_raw <- id_col_raw
-      original_ids       <- raw_dat[[id_col_raw]]
-      id_key_vals        <- raw_dat[[identifier_col_raw]]
 
       # Occasion column (for IOV designs) -- estimatedRandomEffects.txt keeps the
       # dataset's raw occasion column name (e.g. "dose_cumsum"); dat keeps that
-      # SAME name unchanged (prepare_mlx_dataset no longer renames it), because
+      # SAME name unchanged (prepare_monolix_dataset no longer renames it), because
       # it doubles as the mrgsolve $PARAM occasion-indicator regressor that the
       # translated model's $MAIN cascade reads directly.
       occ_col_raw <- data_info_pre$header[data_info_pre$headerTypes == "occ"]
       if (length(occ_col_raw) != 1) occ_col_raw <- NA_character_
-
-      # prepare_mlx_dataset() (via prepare_monolix_dataset() in vpc_utils.R)
-      # already drops Monolix "ignore"-marked columns/rows internally, before
-      # renaming the id-headerType column to "ID" -- re-deriving ignore_col
-      # here and filtering dat by it is not just redundant, it's wrong: if a
-      # RAW column literally named "ID" happens to be the one marked
-      # headerType "ignore" (distinct from whatever column is headerType
-      # "id"), that raw column no longer exists in dat by this point, but the
-      # NEW "ID" grouping column vpc_utils.R created collides on the same
-      # name -- so the filter below would silently zero out every row
-      # (encoded subject IDs are never 0/NA).
-      dat <- raw_dat %>% prepare_mlx_dataset(model_data)
 
       # Load ETAs from IndividualParameters/estimatedRandomEffects.txt
       eta_file <- file.path(result_dir, "IndividualParameters",
@@ -2334,13 +2264,9 @@ server <- function(input, output, session) {
       eta_param <- sub("^eta_(.*)_mode$", "\\1", eta_cols)
       is_iov    <- eta_param %in% model_data$iov_param_names
 
-      # Align eta_df$id encoding with dat$ID. eta_df$id holds the identifier
-      # column's raw values -- map those back to dat$ID's numeric encoding.
-      # prepare_mlx_dataset applies as.numeric(as.factor(ID)) to the "id"
-      # column when it isn't already numeric, so reproduce that same mapping
-      # here to stay consistent.
-      encoded_ids <- if (is.numeric(original_ids)) original_ids else as.numeric(as.factor(original_ids))
-      id_lookup   <- stats::setNames(encoded_ids, as.character(id_key_vals))
+      # Align eta_df$id with dat$ID through the raw-file row of each record.
+      id_key_vals <- raw_dat[[identifier_col_raw]][match(dat$ROW, raw_dat$ROW)]
+      id_lookup   <- stats::setNames(dat$ID, as.character(id_key_vals))
       id_lookup   <- id_lookup[!duplicated(names(id_lookup))]
       eta_df      <- eta_df %>% mutate(id = unname(id_lookup[as.character(id)]))
 
@@ -2551,7 +2477,7 @@ server <- function(input, output, session) {
       }
 
       # ROW was tagged on raw_dat before any filter/sort (see above) and
-      # survives untouched through prepare_mlx_dataset()/apply_f_to_rate() --
+      # survives untouched through prepare_monolix_dataset()/apply_f_to_rate() --
       # neither drops unrecognized columns or duplicates rows -- so it's
       # already the raw-file-order key on dat_pred/dat_ipred here. Do NOT
       # reassign it via row_number() at this point: that would renumber by
@@ -3496,16 +3422,9 @@ server <- function(input, output, session) {
       )
 
       if (mode == "monolix") {
-        structural_model_path <- getStructuralModel()
-        structural_model_text <- readLines(resolve_lib_model_path(structural_model_path))
-        opts$mlxtran_lines  <- stringr::str_squish(
-          stringr::str_replace(structural_model_text, ";.*$", ""))
-        opts$covariate_info <- getCovariateInformation()
-        opts$data_info      <- getData()
-        opts$dvid_map       <- model_data$dvid_map
-        opts$has_dvid       <- model_data$has_dvid
-        opts$bql_col        <- input$vpc_bql_column
-        opts$mlx_filter_conditions <- mlx_filters$conditions
+        opts <- c(opts, monolix_dataset_opts(model_data$mlxtran_path,
+                                         input$monolix_path,
+                                         bql_col = input$vpc_bql_column))
       }
 
       # ── Prepare dataset via vpc_utils.R ───────────────────────────────────────
@@ -4056,27 +3975,21 @@ server <- function(input, output, session) {
     }
   )
 
-  # Assemble the Monolix-only `opts` subset that prepare_monolix_dataset()
-  # needs, exactly mirroring the interactive assembly at ~4675-4690 -- called
-  # at bundle-download time and saved as vpc_opts.rds so the downloaded
-  # script's prep_vpc_dataset() call is byte-for-byte what the interactive
-  # VPC tab would have used (no re-derivation from the .mlxtran on script run).
-  build_vpc_monolix_opts <- function() {
-      mlx_filters <- parse_mlx_dataset_filters(model_data$mlxtran_path, id_col = mlx_identifier_col())
-
-      structural_model_path <- getStructuralModel()
-      structural_model_text <- readLines(resolve_lib_model_path(structural_model_path))
-
-      list(
-        mlxtran_lines  = stringr::str_squish(
-          stringr::str_replace(structural_model_text, ";.*$", "")),
-        covariate_info = getCovariateInformation(),
-        data_info      = getData(),
-        dvid_map       = model_data$dvid_map,
-        has_dvid       = model_data$has_dvid,
-        bql_col        = input$vpc_bql_column,
-        mlx_filter_conditions = mlx_filters$conditions
-      )
+  # Write the VPC YAML; for Monolix, annotate column_map (yaml::write_yaml
+  # cannot emit comments, so the note is inserted after writing).
+  write_vpc_yaml <- function(path) {
+    yaml::write_yaml(build_vpc_yaml_spec(), path)
+    if (!isTRUE(input$vpc_data_source == "nonmem")) {
+      txt <- readLines(path, warn = FALSE)
+      i <- grep("^column_map:", txt)[1]
+      if (!is.na(i)) {
+        txt <- append(txt, c(
+          "# Monolix: only TAD is read from column_map. All other column roles",
+          "# are read directly from the Monolix project (monolix_project below)."
+        ), after = i - 1)
+        writeLines(txt, path)
+      }
+    }
   }
 
   # Download VPC YAML config (Mike's vpc.yaml format for standalone reproducibility)
@@ -4301,6 +4214,9 @@ server <- function(input, output, session) {
         output_directory = "vpc_output",
         output_stem      = "vpc",
         nRep             = as.integer(input$vpc_n_sims),
+        seed             = if (is.null(input$vpc_seed) || is.na(input$vpc_seed)) NULL else as.integer(input$vpc_seed),
+        parallel_mode    = vpc_parallel_mode(input),
+        n_jobs           = if (identical(vpc_parallel_mode(input), "hpc")) as.integer(input$vpc_n_jobs) else NULL,
         output_filetype  = "png",
         width            = input$vpc_plot_width  %||% 7,
         height           = input$vpc_plot_height %||% 7,
@@ -4369,14 +4285,18 @@ server <- function(input, output, session) {
             show_legend  = isTRUE(input$vpc_show_legend %||% TRUE)
           )
         )
-      ), nm_ig_yaml)
+      ), nm_ig_yaml, if (!is_nonmem) list(
+        monolix_project = normalizePath(model_data$mlxtran_path, mustWork = FALSE),
+        monolix_path    = input$monolix_path,
+        bql_column      = input$vpc_bql_column %||% ""
+      ))
       vpc_yaml
   }
 
   output$download_vpc_yaml <- downloadHandler(
     filename = function() paste0("vpc_config_", Sys.Date(), ".yaml"),
     content = function(file) {
-      yaml::write_yaml(build_vpc_yaml_spec(), file)
+      write_vpc_yaml(file)
     }
   )
 
@@ -4391,9 +4311,6 @@ server <- function(input, output, session) {
   build_vpc_script_text <- function(yaml_filename = NULL, bundle_template = FALSE) {
       is_nonmem        <- isTRUE(input$vpc_data_source == "nonmem")
       dl_parallel_mode <- vpc_parallel_mode(input)
-      dl_seed          <- input$vpc_seed
-      dl_n_jobs        <- if (dl_parallel_mode == "hpc") input$vpc_n_jobs else NULL
-      dl_seed_str      <- if (!is.null(dl_seed) && !is.na(dl_seed)) as.character(dl_seed) else "NULL"
 
       s_header_libs <- if (dl_parallel_mode == "hpc") {
         if (isTRUE(bundle_template)) {
@@ -4452,9 +4369,10 @@ library(data.table)
 
 '
         } else {
-'# NOTE: this script requires the MN2mrg package to be installed and
-# vpc_opts.rds living alongside it. Download the "Reproducibility Bundle"
-# (not just this script) to get all of these files together.
+'# NOTE: this script requires the MN2mrg package, a MonolixSuite install
+# (monolix_path in the YAML) and the .mlxtran project (monolix_project in the
+# YAML). Download the "Reproducibility Bundle" (not just this script) to get
+# the script and config together.
 
 '
         }
@@ -4536,13 +4454,9 @@ vpc.yaml <- function(yaml) {
 '
 
       s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  opts_file <- file.path(dirname(normalizePath(yaml)), "vpc_opts.rds")
-  if (!file.exists(opts_file)) {
-    cat(paste0("\nFile ", opts_file, " does not exist!\n\n"))
-    return(invisible(NULL))
-  }
-  prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix",
-                           opts = readRDS(opts_file))
+  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path,
+                           bql_col = vpcspec$bql_column)
+  prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix", opts = opts)
   dat  <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
 
@@ -4577,32 +4491,19 @@ vpc.yaml <- function(yaml) {
   cat("Running", vpcspec$nRep, "simulations...\n")
 
 '
-      s_vpc_sim <- if (dl_parallel_mode == "hpc") {
-        paste0(
-          '  # SGE worker logs go beside the model, which the workers must already\n',
-          '  # be able to read, so the directory is cluster-visible.\n',
-          '  sim_res <- run_vpc_sim(\n',
-          '    mod_path      = vpcspec$input_model,\n',
-          '    data          = dat,\n',
-          '    n_rep         = vpcspec$nRep,\n',
-          '    n_jobs        = ', dl_n_jobs, 'L,\n',
-          '    carry_list    = carry,\n',
-          '    parallel_mode = "hpc",\n',
-          '    seed          = ', dl_seed_str, '\n',
-          '  )\n'
-        )
-      } else {
-        paste0(
-          '  sim_res <- run_vpc_sim(\n',
-          '    mod_path      = vpcspec$input_model,\n',
-          '    data          = dat,\n',
-          '    n_rep         = vpcspec$nRep,\n',
-          '    carry_list    = carry,\n',
-          '    parallel_mode = "local",\n',
-          '    seed          = ', dl_seed_str, '\n',
-          '  )\n'
-        )
-      }
+      s_vpc_sim <- paste0(
+        if (dl_parallel_mode == "hpc")
+          "  # SGE worker logs go beside the model, which the workers must already\n  # be able to read, so the directory is cluster-visible.\n" else "",
+        '  sim_res <- run_vpc_sim(\n',
+        '    mod_path      = vpcspec$input_model,\n',
+        '    data          = dat,\n',
+        '    n_rep         = vpcspec$nRep,\n',
+        '    n_jobs        = vpcspec$n_jobs,\n',
+        '    carry_list    = carry,\n',
+        '    parallel_mode = set_option(vpcspec, "parallel_mode", "local"),\n',
+        '    seed          = vpcspec$seed\n',
+        '  )\n'
+      )
 
       s_vpc_rest_b <- '
   cat("Simulation complete:", nrow(sim_res$sim_df), "rows across", vpcspec$nRep, "reps\n\n")
@@ -4652,10 +4553,9 @@ vpc.yaml <- function(yaml) {
 
   # Bundles the YAML config, standalone R script and (for HPC mode) the SGE
   # template into a single zip for reproducibility. The script calls
-  # library(MN2mrg) for its helpers. For Monolix, also saves the
-  # vpc_opts.rds snapshot so the extracted script reproduces the interactive
-  # prep_vpc_dataset() call without re-parsing the .mlxtran. sge.tmpl is
-  # shipped from inst/extdata/.
+  # library(MN2mrg) for its helpers. For Monolix, the script rebuilds the
+  # prep_vpc_dataset() opts with monolix_dataset_opts() from the YAML's project and
+  # MonolixSuite paths. sge.tmpl is shipped from inst/extdata/.
   output$download_vpc_bundle <- downloadHandler(
     filename = function() "vpc_bundle.zip",
     content = function(file) {
@@ -4666,14 +4566,11 @@ vpc.yaml <- function(yaml) {
       dir.create(bundle_dir)
       on.exit(unlink(bundle_dir, recursive = TRUE), add = TRUE)
 
-      yaml::write_yaml(build_vpc_yaml_spec(), file.path(bundle_dir, "vpc_config.yaml"))
+      write_vpc_yaml(file.path(bundle_dir, "vpc_config.yaml"))
       writeLines(
         build_vpc_script_text(yaml_filename = "vpc_config.yaml", bundle_template = is_hpc),
         file.path(bundle_dir, "vpc_script.R")
       )
-      if (!is_nonmem) {
-        saveRDS(build_vpc_monolix_opts(), file.path(bundle_dir, "vpc_opts.rds"))
-      }
       if (is_hpc) {
         file.copy(
           system.file("extdata", "sge.tmpl", package = "MN2mrg"),
