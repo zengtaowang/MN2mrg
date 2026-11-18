@@ -111,11 +111,11 @@ apply_mlx_filter_conditions <- function(data, conditions) {
 #'   `mlxtran_lines` (cleaned structural model text for ADM->CMT parsing),
 #'   `dvid_map` (data frame with `dvid_identifier` column),
 #'   `has_dvid` (logical; TRUE when the project uses an obsid/DVID column),
-#'   `filter_mdv` (logical; TRUE removes `MDV==1` obs rows, set TRUE for
-#'   VPC), `mlx_filter_conditions` (character vector of R filter expressions
+#'   `filter_mdv` (logical; TRUE removes all `MDV==1` observation rows, BQL
+#'   rows included, as Monolix ignores them; set TRUE for VPC),
+#'   `mlx_filter_conditions` (character vector of R filter expressions
 #'   from [parse_mlx_dataset_filters()], referencing RAW csv column names,
-#'   applied before renaming), `bql_col` (fallback name when no `cens`
-#'   headerType is set), and `tad_col` (user-mapped TAD source column to
+#'   applied before renaming), and `tad_col` (user-mapped TAD source column to
 #'   preserve through the ignore-column drop).
 #'
 #' @return A list with `data` (the prepared data frame sorted by ID and
@@ -310,25 +310,13 @@ prepare_monolix_dataset <- function(data, opts = list()) {
   }
 
   # -- Step 8: MDV filtering (VPC path only) --
-  # BQL/M3 rows have EVID==0 & MDV==1 with DV set to a placeholder (0 or the
-  # LLOQ); they are genuine observations and must be kept (as censored) for
-  # vpc::vpc_cens() to compute the below-LLOQ fraction correctly. BQL is
-  # auto-detected from headerTypes "cens" in Step 2 above; opts$bql_col
-  # (manual UI mapping) is only a fallback for datasets without that type.
+  # Monolix ignores every row with MDV == 1 (fit, predictions.txt and the
+  # summary counts all leave them out), BQL-flagged rows included. Drop them
+  # so the VPC and Verification use the rows the model was fitted to.
   if (filter_mdv) {
     mdv_col <- names(data)[toupper(names(data)) == "MDV"]
-    bql_col <- if ("BQL" %in% names(data)) {
-      "BQL"
-    } else if (!is.null(opts$bql_col) && nchar(opts$bql_col) > 0) {
-      names(data)[toupper(names(data)) == toupper(opts$bql_col)]
-    } else character(0)
-    if (length(mdv_col) > 0) {
-      if (length(bql_col) == 1) {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0 & .data[[bql_col]] != 1))
-      } else {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
-      }
-    }
+    if (length(mdv_col) > 0)
+      data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
   }
 
   # -- Step 9: DVID handling --

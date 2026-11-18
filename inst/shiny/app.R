@@ -2412,8 +2412,6 @@ server <- function(input, output, session) {
         dvid_filter  <- ifelse(!is.na(dvid_numeric), dvid_numeric, seq_along(dvid_labels))
       }
 
-      has_mdv <- "MDV" %in% names(dat)
-
       # Adjust RATE for F_CMT: mrgsolve duration = F_CMT * AMT / RATE,
       # but Monolix uses AMT / RATE. Multiplying RATE by F_CMT on dose rows
       # cancels the F_CMT and aligns the infusion duration.
@@ -2484,12 +2482,12 @@ server <- function(input, output, session) {
       # the ID/TIME-sorted order mrgsolve simulates on, losing the original
       # file order predictions.txt follows.
 
-      # Helper: filter sim output to the rows Monolix predictions cover.
+      # Helper: filter sim output to the rows Monolix predictions cover. The
+      # dataset prep has already dropped MDV == 1 rows, which Monolix ignores.
       # After remapping, mrgsolve DVID i = i (sequential).
       filter_obs_rows <- function(sim_df, mrg_dvid) {
         rows <- sim_df %>% dplyr::filter(EVID == 0)
         if (!is.na(mrg_dvid)) rows <- rows %>% dplyr::filter(DVID == mrg_dvid)
-        if (has_mdv)          rows <- rows %>% dplyr::filter(MDV  == 0)
         rows <- rows %>% dplyr::filter(!is.na(DV_OBS))
         rows
       }
@@ -2500,13 +2498,13 @@ server <- function(input, output, session) {
       # to rejoin EVID/DVID/DV_OBS/MDV after mrgsim.
       pred_sim_full <- mod %>% zero_re() %>%
         data_set(dat_pred) %>% carry_out(ROW) %>% mrgsim_df() %>%
-        left_join(dat_pred %>% select(ROW, EVID, DVID, DV_OBS = DV, any_of("MDV")), by = "ROW")
+        left_join(dat_pred %>% select(ROW, EVID, DVID, DV_OBS = DV), by = "ROW")
 
       # IPRED simulation (zero sigma, ETAs from data columns)
       ipred_sim_full <- mod %>% zero_re(sigma) %>%
         data_set(dat_ipred) %>% carry_out(ROW) %>%
         mrgsim_df(etasrc = "data") %>%
-        left_join(dat_ipred %>% select(ROW, EVID, DVID, DV_OBS = DV, any_of("MDV")), by = "ROW")
+        left_join(dat_ipred %>% select(ROW, EVID, DVID, DV_OBS = DV), by = "ROW")
 
       # Build one row of plots per DVID
       plot_list <- lapply(seq_along(pred_files), function(i) {
