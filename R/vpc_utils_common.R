@@ -234,8 +234,8 @@ build_vpc_plot_spec <- function(plot_params = list()) {
 #' it can be handed straight to [run_vpc_sim()]. The Monolix path delegates
 #' to [prepare_monolix_dataset()] with `filter_mdv = TRUE`. The NONMEM path applies `$DATA IGNORE=(cond)` filters
 #' (before renaming), performs `column_map` renaming, coerces numeric
-#' columns, derives EVID/CMT/DVID when absent, applies MDV filtering
-#' respecting BQL preservation, drops user-specified ignore columns, drops
+#' columns, derives EVID/CMT/DVID when absent, drops all `MDV == 1`
+#' observation rows, drops user-specified ignore columns, drops
 #' non-CMT character columns (mrgsolve requires numeric data), sorts by
 #' `ID`/`TIME`. In both modes `ROW` is the row's position in the raw file,
 #' numbered before any filtering or sorting (it lines up with Monolix's
@@ -313,14 +313,11 @@ prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) 
     if (!"CMT" %in% names(data))
       data <- dplyr::mutate(data, CMT = dplyr::if_else(EVID == 1, 1L, 0L))
 
+    # MDV == 1 observation rows are not used by the fit (BQL rows are MDV == 0
+    # under M3), so drop them all.
     mdv_col <- names(data)[toupper(names(data)) == "MDV"]
-    if (length(mdv_col) > 0) {
-      if ("BQL" %in% names(data)) {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0 & BQL != 1))
-      } else {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
-      }
-    }
+    if (length(mdv_col) > 0)
+      data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
 
     # DVID mirrors CMT — no separate derivation needed for NONMEM
     data <- dplyr::mutate(data, DVID = as.integer(CMT))

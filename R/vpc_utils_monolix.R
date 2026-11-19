@@ -516,12 +516,10 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
 #' @param project_path Character. Path to the `.mlxtran` project file.
 #' @param monolix_path Character. Path to the MonolixSuite installation
 #'   directory, e.g. `"/path/to/MonolixSuite2024R1"`.
-#' @param bql_col Character or `NULL`. Name of the dataset column that flags
-#'   below-quantification observations, if the project has no `cens` column.
 #'
 #' @return Named list for the `opts` argument of [prep_vpc_dataset()] with
 #'   `mlxtran_lines`, `covariate_info`, `data_info`, `dvid_map`, `has_dvid`,
-#'   `bql_col` and `mlx_filter_conditions`.
+#'   and `mlx_filter_conditions`.
 #'
 #' @examples
 #' \dontrun{
@@ -532,7 +530,7 @@ parse_mlx_dataset_filters <- function(mlxtran_path, id_col = "ID") {
 #' }
 #'
 #' @export
-monolix_dataset_opts <- function(project_path, monolix_path, bql_col = NULL) {
+monolix_dataset_opts <- function(project_path, monolix_path) {
   if (!requireNamespace("lixoftConnectors", quietly = TRUE)) {
     stop("monolix_dataset_opts() requires the lixoftConnectors package, which ",
          "ships with MonolixSuite and is not installed.", call. = FALSE)
@@ -562,7 +560,6 @@ monolix_dataset_opts <- function(project_path, monolix_path, bql_col = NULL) {
     data_info      = data_info,
     dvid_map       = if (has_dvid) extract_dvid_mapping(project_path) else NULL,
     has_dvid       = has_dvid,
-    bql_col        = bql_col %||% "",
     mlx_filter_conditions =
       parse_mlx_dataset_filters(project_path, id_col = id_col)$conditions
   )

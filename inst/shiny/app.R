@@ -3421,8 +3421,7 @@ server <- function(input, output, session) {
 
       if (mode == "monolix") {
         opts <- c(opts, monolix_dataset_opts(model_data$mlxtran_path,
-                                         input$monolix_path,
-                                         bql_col = input$vpc_bql_column))
+                                         input$monolix_path))
       }
 
       # ── Prepare dataset via vpc_utils.R ───────────────────────────────────────
@@ -4096,9 +4095,6 @@ server <- function(input, output, session) {
           }
           # TAD is not a recognized Monolix type — add from UI mapping if provided
           if (nchar(input$vpc_tad_column %||% "") > 0) cm$TAD <- input$vpc_tad_column
-          # BQL fallback for datasets without a "cens" headerType (e.g. older
-          # projects not using use=censored) — only applies if not auto-detected
-          if (is.null(cm$BQL) && nchar(input$vpc_bql_column %||% "") > 0) cm$BQL <- input$vpc_bql_column
           cm
         }, error = function(e) list())
       }
@@ -4285,8 +4281,7 @@ server <- function(input, output, session) {
         )
       ), nm_ig_yaml, if (!is_nonmem) list(
         monolix_project = normalizePath(model_data$mlxtran_path, mustWork = FALSE),
-        monolix_path    = input$monolix_path,
-        bql_column      = input$vpc_bql_column %||% ""
+        monolix_path    = input$monolix_path
       ))
       vpc_yaml
   }
@@ -4452,8 +4447,7 @@ vpc.yaml <- function(yaml) {
 '
 
       s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path,
-                           bql_col = vpcspec$bql_column)
+  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path)
   prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix", opts = opts)
   dat  <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")
