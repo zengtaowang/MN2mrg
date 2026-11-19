@@ -718,9 +718,6 @@ ui <- dashboardPage(
                         column(6, selectInput("vpc_tad_column", "TAD Column (optional):", choices = c("", "TAD"), selected = ""))
                       ),
                       fluidRow(
-                        column(6, selectInput("vpc_bql_column", "BQL/Censoring Column:", choices = c("", "BQL"), selected = ""))
-                      ),
-                      fluidRow(
                         column(12, selectizeInput("vpc_ignore_columns", "Columns to Ignore:",
                                                 choices = c(), selected = NULL, multiple = TRUE,
                                                 options = list(placeholder = "Select columns to exclude...")))
@@ -3189,12 +3186,6 @@ server <- function(input, output, session) {
         tad_selected <- if ("TAD" %in% toupper(data_headers)) data_headers[which(toupper(data_headers) == "TAD")[1]] else ""
         updateSelectInput(session, "vpc_tad_column", choices = headers_with_empty, selected = tad_selected)
 
-        # BQL/Censoring column (optional — labels vary: BQL, BLQ, CENS, CENSOR)
-        bql_candidates <- c("BQL", "BLQ", "CENS", "CENSOR")
-        bql_idx        <- which(toupper(data_headers) %in% bql_candidates)
-        bql_selected   <- if (length(bql_idx) > 0) data_headers[bql_idx[1]] else ""
-        updateSelectInput(session, "vpc_bql_column", choices = headers_with_empty, selected = bql_selected)
-
         # Columns to ignore dropdown
         updateSelectizeInput(session, "vpc_ignore_columns", choices = data_headers, selected = NULL)
         
@@ -3282,13 +3273,6 @@ server <- function(input, output, session) {
       updateSelectInput(session, "vpc_tad_column",
                         choices = headers_with_empty,
                         selected = col_sel(csv_headers, "TAD"))
-      col_sel_multi <- function(h, candidates) {
-        idx <- which(toupper(h) %in% candidates)
-        if (length(idx) > 0) h[idx[1]] else ""
-      }
-      updateSelectInput(session, "vpc_bql_column",
-                        choices = headers_with_empty,
-                        selected = col_sel_multi(csv_headers, c("BQL", "BLQ", "CENS", "CENSOR")))
       updateSelectizeInput(session, "vpc_ignore_columns",
                            choices = csv_headers, selected = NULL)
       updateSelectInput(session, "vpc_potential_stratify_vars",
@@ -3402,8 +3386,7 @@ server <- function(input, output, session) {
         RATE = input$vpc_rate_column,
         II   = input$vpc_ii_column,
         ADDL = input$vpc_addl_column,
-        TAD  = input$vpc_tad_column,
-        BQL  = input$vpc_bql_column
+        TAD  = input$vpc_tad_column
       )
       # NONMEM: user-selected column becomes CMT (keeps mrgsolve routing intact).
       # Monolix: column becomes DVID (obsid handling in prepare_monolix_dataset).
@@ -4079,15 +4062,13 @@ server <- function(input, output, session) {
         if (nchar(input$vpc_ii_column   %||% "") > 0) cm$II   <- input$vpc_ii_column
         if (nchar(input$vpc_addl_column %||% "") > 0) cm$ADDL <- input$vpc_addl_column
         if (nchar(input$vpc_tad_column  %||% "") > 0) cm$TAD  <- input$vpc_tad_column
-        if (nchar(input$vpc_bql_column  %||% "") > 0) cm$BQL  <- input$vpc_bql_column
         cm
       } else {
         tryCatch({
           di          <- getData()
           type_to_std <- c(id = "ID", time = "TIME", observation = "DV",
                            amount = "AMT", evid = "EVID", obsid = "DVID",
-                           rate = "RATE", interdoseinterval = "II", addl = "ADDL",
-                           cens = "BQL")
+                           rate = "RATE", interdoseinterval = "II", addl = "ADDL")
           cm <- list()
           for (tp in names(type_to_std)) {
             col <- di$header[di$headerTypes == tp]

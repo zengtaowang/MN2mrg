@@ -32,7 +32,7 @@ plotting).
 Unified helper shared by \code{\link[=prep_vpc_dataset]{prep_vpc_dataset()}} and the app.R
 \code{prepare_mlx_dataset()} inline block. Applies (in order): Monolix
 \verb{[FILTER]} conditions, drop of \code{ignore} columns, headerType-driven column
-renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL/BQL), numeric coercion,
+renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL), numeric coercion,
 EVID derivation, ADM->CMT routing via \code{\link[=extract_adm_to_target]{extract_adm_to_target()}},
 zero-order-infusion \code{RATE = -2} flagging via \code{\link[=extract_depot_info]{extract_depot_info()}},
 transformed-categorical covariate synthesis, raw-categorical encoding,

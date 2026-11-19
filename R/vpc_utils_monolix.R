@@ -98,7 +98,7 @@ apply_mlx_filter_conditions <- function(data, conditions) {
 #' Unified helper shared by [prep_vpc_dataset()] and the app.R
 #' `prepare_mlx_dataset()` inline block. Applies (in order): Monolix
 #' `[FILTER]` conditions, drop of `ignore` columns, headerType-driven column
-#' renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL/BQL), numeric coercion,
+#' renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL), numeric coercion,
 #' EVID derivation, ADM->CMT routing via [extract_adm_to_target()],
 #' zero-order-infusion `RATE = -2` flagging via [extract_depot_info()],
 #' transformed-categorical covariate synthesis, raw-categorical encoding,
@@ -173,8 +173,7 @@ prepare_monolix_dataset <- function(data, opts = list()) {
     }
     type_to_std <- c(id = "ID", time = "TIME", observation = "DV",
                      amount = "AMT", evid = "EVID", obsid = "DVID",
-                     rate = "RATE", interdoseinterval = "II", addl = "ADDL",
-                     cens = "BQL")
+                     rate = "RATE", interdoseinterval = "II", addl = "ADDL")
     for (type in names(type_to_std)) {
       col <- data_info$header[data_info$headerTypes == type]
       if (length(col) == 1)

@@ -796,7 +796,7 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
   }
 
   # vpc's own guess_software()/filter_dv() would otherwise re-drop MDV!=0 rows
-  # (e.g. preserved BQL rows) once it classifies this as NONMEM-format data.
+  # once it classifies this as NONMEM-format data.
   # EVID is left in place so vpc's EVID==0 dosing-row exclusion still applies.
   obs <- dplyr::select(obs, -dplyr::any_of("MDV"))
   sim <- dplyr::select(sim, -dplyr::any_of("MDV"))
