@@ -4234,11 +4234,13 @@ server <- function(input, output, session) {
                             input$vpc_y_label else NULL,
             xlim        = {
               xmn <- input$vpc_xmin; xmx <- input$vpc_xmax
-              if (!is.na(xmn) && !is.na(xmx)) c(xmn, xmx) else NULL
+              if (!is.na(xmn) || !is.na(xmx))
+                list(if (is.na(xmn)) NULL else xmn, if (is.na(xmx)) NULL else xmx)
             },
             ylim        = {
               ymn <- input$vpc_ymin; ymx <- input$vpc_ymax
-              if (!is.na(ymn) && !is.na(ymx)) c(ymn, ymx) else NULL
+              if (!is.na(ymn) || !is.na(ymx))
+                list(if (is.na(ymn)) NULL else ymn, if (is.na(ymx)) NULL else ymx)
             },
             x_breaks    = {
               xb <- trimws(input$vpc_x_breaks %||% "")

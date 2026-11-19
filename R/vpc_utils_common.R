@@ -604,6 +604,14 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
   bins <- opt("bins", "data")
   if (is.list(bins)) bins <- as.numeric(unlist(bins))
 
+  # An axis limit may be one-sided: YAML `[50, ~]` reads as list(50, NULL), and
+  # unlist() would drop the NULL. Keep it as c(50, NA) for coord_cartesian().
+  lim_pair <- function(x) {
+    if (is.null(x)) return(NULL)
+    v <- vapply(x, function(e) if (is.null(e)) NA_real_ else as.numeric(e), numeric(1))
+    if (all(is.na(v))) NULL else v
+  }
+
   spec <- build_vpc_plot_spec(list(
     title       = opt("title", ""),
     time_column = opt("time_column", "TIME"),
@@ -620,8 +628,8 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
     censor      = opt("censor", FALSE),
     x_label     = opt("x_label"),
     y_label     = opt("y_label"),
-    xlim        = unlist(opt("xlim")),
-    ylim        = unlist(opt("ylim")),
+    xlim        = lim_pair(opt("xlim")),
+    ylim        = lim_pair(opt("ylim")),
     x_breaks    = unlist(opt("x_breaks")),
     y_breaks    = unlist(opt("y_breaks")),
     pi_fill     = vpcspec$pi_fill  %||% "steelblue3",
