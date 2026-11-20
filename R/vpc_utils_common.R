@@ -697,7 +697,9 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
 
   logY       <- isTRUE(vpc_spec$logY)
   pred_corr  <- isTRUE(vpc_spec$predCorr)
-  lloq_val   <- vpc_spec$lloq
+  # vpc censors only values strictly below the LLOQ, but BQL rows often carry
+  # the LLOQ itself as DV. Nudge it up so those rows are censored in both panels.
+  lloq_val   <- if (is.null(vpc_spec$lloq)) NULL else vpc_spec$lloq + 1e-7
   censor     <- isTRUE(vpc_spec$censor)
   smooth     <- isTRUE(vpc_spec$smooth %||% TRUE)
   show_legend <- isTRUE(vpc_spec$show_legend %||% TRUE)
@@ -864,7 +866,7 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
       sim_cols  = list(idv = time_col, dv = sim_col, pred = "PRED", sim = "rep"),
       obs_cols  = list(idv = time_col, dv = "DV",    pred = "PRED"),
       stratify  = stratify_final,
-      lloq      = lloq_val + 0.01,
+      lloq      = lloq_val,
       vpc_theme = vpc_theme,
       ylab      = "Probability of <LLOQ",
       bins      = bins,
