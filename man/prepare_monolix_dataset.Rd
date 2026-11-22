@@ -15,11 +15,11 @@ prepare_monolix_dataset(data, opts = list())
 \code{mlxtran_lines} (cleaned structural model text for ADM->CMT parsing),
 \code{dvid_map} (data frame with \code{dvid_identifier} column),
 \code{has_dvid} (logical; TRUE when the project uses an obsid/DVID column),
-\code{filter_mdv} (logical; TRUE removes \code{MDV==1} obs rows, set TRUE for
-VPC), \code{mlx_filter_conditions} (character vector of R filter expressions
+\code{filter_mdv} (logical; TRUE removes all \code{MDV==1} observation rows, BQL
+rows included, as Monolix ignores them; set TRUE for VPC),
+\code{mlx_filter_conditions} (character vector of R filter expressions
 from \code{\link[=parse_mlx_dataset_filters]{parse_mlx_dataset_filters()}}, referencing RAW csv column names,
-applied before renaming), \code{bql_col} (fallback name when no \code{cens}
-headerType is set), and \code{tad_col} (user-mapped TAD source column to
+applied before renaming), and \code{tad_col} (user-mapped TAD source column to
 preserve through the ignore-column drop).}
 }
 \value{
@@ -32,7 +32,7 @@ plotting).
 Unified helper shared by \code{\link[=prep_vpc_dataset]{prep_vpc_dataset()}} and the app.R
 \code{prepare_mlx_dataset()} inline block. Applies (in order): Monolix
 \verb{[FILTER]} conditions, drop of \code{ignore} columns, headerType-driven column
-renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL/BQL), numeric coercion,
+renaming (ID/TIME/DV/AMT/EVID/DVID/RATE/II/ADDL), numeric coercion,
 EVID derivation, ADM->CMT routing via \code{\link[=extract_adm_to_target]{extract_adm_to_target()}},
 zero-order-infusion \code{RATE = -2} flagging via \code{\link[=extract_depot_info]{extract_depot_info()}},
 transformed-categorical covariate synthesis, raw-categorical encoding,

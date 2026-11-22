@@ -718,9 +718,6 @@ ui <- dashboardPage(
                         column(6, selectInput("vpc_tad_column", "TAD Column (optional):", choices = c("", "TAD"), selected = ""))
                       ),
                       fluidRow(
-                        column(6, selectInput("vpc_bql_column", "BQL/Censoring Column:", choices = c("", "BQL"), selected = ""))
-                      ),
-                      fluidRow(
                         column(12, selectizeInput("vpc_ignore_columns", "Columns to Ignore:",
                                                 choices = c(), selected = NULL, multiple = TRUE,
                                                 options = list(placeholder = "Select columns to exclude...")))
@@ -2412,8 +2409,6 @@ server <- function(input, output, session) {
         dvid_filter  <- ifelse(!is.na(dvid_numeric), dvid_numeric, seq_along(dvid_labels))
       }
 
-      has_mdv <- "MDV" %in% names(dat)
-
       # Adjust RATE for F_CMT: mrgsolve duration = F_CMT * AMT / RATE,
       # but Monolix uses AMT / RATE. Multiplying RATE by F_CMT on dose rows
       # cancels the F_CMT and aligns the infusion duration.
@@ -2484,12 +2479,12 @@ server <- function(input, output, session) {
       # the ID/TIME-sorted order mrgsolve simulates on, losing the original
       # file order predictions.txt follows.
 
-      # Helper: filter sim output to the rows Monolix predictions cover.
+      # Helper: filter sim output to the rows Monolix predictions cover. The
+      # dataset prep has already dropped MDV == 1 rows, which Monolix ignores.
       # After remapping, mrgsolve DVID i = i (sequential).
       filter_obs_rows <- function(sim_df, mrg_dvid) {
         rows <- sim_df %>% dplyr::filter(EVID == 0)
         if (!is.na(mrg_dvid)) rows <- rows %>% dplyr::filter(DVID == mrg_dvid)
-        if (has_mdv)          rows <- rows %>% dplyr::filter(MDV  == 0)
         rows <- rows %>% dplyr::filter(!is.na(DV_OBS))
         rows
       }
@@ -2500,13 +2495,13 @@ server <- function(input, output, session) {
       # to rejoin EVID/DVID/DV_OBS/MDV after mrgsim.
       pred_sim_full <- mod %>% zero_re() %>%
         data_set(dat_pred) %>% carry_out(ROW) %>% mrgsim_df() %>%
-        left_join(dat_pred %>% select(ROW, EVID, DVID, DV_OBS = DV, any_of("MDV")), by = "ROW")
+        left_join(dat_pred %>% select(ROW, EVID, DVID, DV_OBS = DV), by = "ROW")
 
       # IPRED simulation (zero sigma, ETAs from data columns)
       ipred_sim_full <- mod %>% zero_re(sigma) %>%
         data_set(dat_ipred) %>% carry_out(ROW) %>%
         mrgsim_df(etasrc = "data") %>%
-        left_join(dat_ipred %>% select(ROW, EVID, DVID, DV_OBS = DV, any_of("MDV")), by = "ROW")
+        left_join(dat_ipred %>% select(ROW, EVID, DVID, DV_OBS = DV), by = "ROW")
 
       # Build one row of plots per DVID
       plot_list <- lapply(seq_along(pred_files), function(i) {
@@ -3191,12 +3186,6 @@ server <- function(input, output, session) {
         tad_selected <- if ("TAD" %in% toupper(data_headers)) data_headers[which(toupper(data_headers) == "TAD")[1]] else ""
         updateSelectInput(session, "vpc_tad_column", choices = headers_with_empty, selected = tad_selected)
 
-        # BQL/Censoring column (optional — labels vary: BQL, BLQ, CENS, CENSOR)
-        bql_candidates <- c("BQL", "BLQ", "CENS", "CENSOR")
-        bql_idx        <- which(toupper(data_headers) %in% bql_candidates)
-        bql_selected   <- if (length(bql_idx) > 0) data_headers[bql_idx[1]] else ""
-        updateSelectInput(session, "vpc_bql_column", choices = headers_with_empty, selected = bql_selected)
-
         # Columns to ignore dropdown
         updateSelectizeInput(session, "vpc_ignore_columns", choices = data_headers, selected = NULL)
         
@@ -3284,13 +3273,6 @@ server <- function(input, output, session) {
       updateSelectInput(session, "vpc_tad_column",
                         choices = headers_with_empty,
                         selected = col_sel(csv_headers, "TAD"))
-      col_sel_multi <- function(h, candidates) {
-        idx <- which(toupper(h) %in% candidates)
-        if (length(idx) > 0) h[idx[1]] else ""
-      }
-      updateSelectInput(session, "vpc_bql_column",
-                        choices = headers_with_empty,
-                        selected = col_sel_multi(csv_headers, c("BQL", "BLQ", "CENS", "CENSOR")))
       updateSelectizeInput(session, "vpc_ignore_columns",
                            choices = csv_headers, selected = NULL)
       updateSelectInput(session, "vpc_potential_stratify_vars",
@@ -3404,8 +3386,7 @@ server <- function(input, output, session) {
         RATE = input$vpc_rate_column,
         II   = input$vpc_ii_column,
         ADDL = input$vpc_addl_column,
-        TAD  = input$vpc_tad_column,
-        BQL  = input$vpc_bql_column
+        TAD  = input$vpc_tad_column
       )
       # NONMEM: user-selected column becomes CMT (keeps mrgsolve routing intact).
       # Monolix: column becomes DVID (obsid handling in prepare_monolix_dataset).
@@ -3423,8 +3404,7 @@ server <- function(input, output, session) {
 
       if (mode == "monolix") {
         opts <- c(opts, monolix_dataset_opts(model_data$mlxtran_path,
-                                         input$monolix_path,
-                                         bql_col = input$vpc_bql_column))
+                                         input$monolix_path))
       }
 
       # ── Prepare dataset via vpc_utils.R ───────────────────────────────────────
@@ -4082,15 +4062,13 @@ server <- function(input, output, session) {
         if (nchar(input$vpc_ii_column   %||% "") > 0) cm$II   <- input$vpc_ii_column
         if (nchar(input$vpc_addl_column %||% "") > 0) cm$ADDL <- input$vpc_addl_column
         if (nchar(input$vpc_tad_column  %||% "") > 0) cm$TAD  <- input$vpc_tad_column
-        if (nchar(input$vpc_bql_column  %||% "") > 0) cm$BQL  <- input$vpc_bql_column
         cm
       } else {
         tryCatch({
           di          <- getData()
           type_to_std <- c(id = "ID", time = "TIME", observation = "DV",
                            amount = "AMT", evid = "EVID", obsid = "DVID",
-                           rate = "RATE", interdoseinterval = "II", addl = "ADDL",
-                           cens = "BQL")
+                           rate = "RATE", interdoseinterval = "II", addl = "ADDL")
           cm <- list()
           for (tp in names(type_to_std)) {
             col <- di$header[di$headerTypes == tp]
@@ -4098,9 +4076,6 @@ server <- function(input, output, session) {
           }
           # TAD is not a recognized Monolix type — add from UI mapping if provided
           if (nchar(input$vpc_tad_column %||% "") > 0) cm$TAD <- input$vpc_tad_column
-          # BQL fallback for datasets without a "cens" headerType (e.g. older
-          # projects not using use=censored) — only applies if not auto-detected
-          if (is.null(cm$BQL) && nchar(input$vpc_bql_column %||% "") > 0) cm$BQL <- input$vpc_bql_column
           cm
         }, error = function(e) list())
       }
@@ -4259,11 +4234,13 @@ server <- function(input, output, session) {
                             input$vpc_y_label else NULL,
             xlim        = {
               xmn <- input$vpc_xmin; xmx <- input$vpc_xmax
-              if (!is.na(xmn) && !is.na(xmx)) c(xmn, xmx) else NULL
+              if (!is.na(xmn) || !is.na(xmx))
+                list(if (is.na(xmn)) NULL else xmn, if (is.na(xmx)) NULL else xmx)
             },
             ylim        = {
               ymn <- input$vpc_ymin; ymx <- input$vpc_ymax
-              if (!is.na(ymn) && !is.na(ymx)) c(ymn, ymx) else NULL
+              if (!is.na(ymn) || !is.na(ymx))
+                list(if (is.na(ymn)) NULL else ymn, if (is.na(ymx)) NULL else ymx)
             },
             x_breaks    = {
               xb <- trimws(input$vpc_x_breaks %||% "")
@@ -4287,8 +4264,7 @@ server <- function(input, output, session) {
         )
       ), nm_ig_yaml, if (!is_nonmem) list(
         monolix_project = normalizePath(model_data$mlxtran_path, mustWork = FALSE),
-        monolix_path    = input$monolix_path,
-        bql_column      = input$vpc_bql_column %||% ""
+        monolix_path    = input$monolix_path
       ))
       vpc_yaml
   }
@@ -4454,8 +4430,7 @@ vpc.yaml <- function(yaml) {
 '
 
       s_data_monolix <- '  raw_dat   <- data.table::fread(datFile, na.strings = ".") %>% as_tibble()
-  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path,
-                           bql_col = vpcspec$bql_column)
+  opts <- monolix_dataset_opts(vpcspec$monolix_project, vpcspec$monolix_path)
   prep <- prep_vpc_dataset(raw_dat, column_map, mode = "monolix", opts = opts)
   dat  <- prep$data
   cat("Dataset loaded:", nrow(dat), "rows (after column prep)\n")

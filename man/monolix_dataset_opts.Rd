@@ -4,21 +4,18 @@
 \alias{monolix_dataset_opts}
 \title{Build the dataset-preparation \code{opts} list for a Monolix project}
 \usage{
-monolix_dataset_opts(project_path, monolix_path, bql_col = NULL)
+monolix_dataset_opts(project_path, monolix_path)
 }
 \arguments{
 \item{project_path}{Character. Path to the \code{.mlxtran} project file.}
 
 \item{monolix_path}{Character. Path to the MonolixSuite installation
 directory, e.g. \code{"/path/to/MonolixSuite2024R1"}.}
-
-\item{bql_col}{Character or \code{NULL}. Name of the dataset column that flags
-below-quantification observations, if the project has no \code{cens} column.}
 }
 \value{
 Named list for the \code{opts} argument of \code{\link[=prep_vpc_dataset]{prep_vpc_dataset()}} with
 \code{mlxtran_lines}, \code{covariate_info}, \code{data_info}, \code{dvid_map}, \code{has_dvid},
-\code{bql_col} and \code{mlx_filter_conditions}.
+and \code{mlx_filter_conditions}.
 }
 \description{
 Loads the Monolix project through \code{lixoftConnectors} and collects what the

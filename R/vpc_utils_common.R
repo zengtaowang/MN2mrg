@@ -234,8 +234,8 @@ build_vpc_plot_spec <- function(plot_params = list()) {
 #' it can be handed straight to [run_vpc_sim()]. The Monolix path delegates
 #' to [prepare_monolix_dataset()] with `filter_mdv = TRUE`. The NONMEM path applies `$DATA IGNORE=(cond)` filters
 #' (before renaming), performs `column_map` renaming, coerces numeric
-#' columns, derives EVID/CMT/DVID when absent, applies MDV filtering
-#' respecting BQL preservation, drops user-specified ignore columns, drops
+#' columns, derives EVID/CMT/DVID when absent, drops all `MDV == 1`
+#' observation rows, drops user-specified ignore columns, drops
 #' non-CMT character columns (mrgsolve requires numeric data), sorts by
 #' `ID`/`TIME`. In both modes `ROW` is the row's position in the raw file,
 #' numbered before any filtering or sorting (it lines up with Monolix's
@@ -313,14 +313,11 @@ prep_vpc_dataset <- function(data, column_map, mode = "monolix", opts = list()) 
     if (!"CMT" %in% names(data))
       data <- dplyr::mutate(data, CMT = dplyr::if_else(EVID == 1, 1L, 0L))
 
+    # MDV == 1 observation rows are not used by the fit (BQL rows are MDV == 0
+    # under M3), so drop them all.
     mdv_col <- names(data)[toupper(names(data)) == "MDV"]
-    if (length(mdv_col) > 0) {
-      if ("BQL" %in% names(data)) {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0 & BQL != 1))
-      } else {
-        data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
-      }
-    }
+    if (length(mdv_col) > 0)
+      data <- dplyr::filter(data, !(.data[[mdv_col]] == 1 & EVID == 0))
 
     # DVID mirrors CMT — no separate derivation needed for NONMEM
     data <- dplyr::mutate(data, DVID = as.integer(CMT))
@@ -607,6 +604,14 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
   bins <- opt("bins", "data")
   if (is.list(bins)) bins <- as.numeric(unlist(bins))
 
+  # An axis limit may be one-sided: YAML `[50, ~]` reads as list(50, NULL), and
+  # unlist() would drop the NULL. Keep it as c(50, NA) for coord_cartesian().
+  lim_pair <- function(x) {
+    if (is.null(x)) return(NULL)
+    v <- vapply(x, function(e) if (is.null(e)) NA_real_ else as.numeric(e), numeric(1))
+    if (all(is.na(v))) NULL else v
+  }
+
   spec <- build_vpc_plot_spec(list(
     title       = opt("title", ""),
     time_column = opt("time_column", "TIME"),
@@ -623,8 +628,8 @@ vpc_spec_from_yaml <- function(vpcspec, plot_name) {
     censor      = opt("censor", FALSE),
     x_label     = opt("x_label"),
     y_label     = opt("y_label"),
-    xlim        = unlist(opt("xlim")),
-    ylim        = unlist(opt("ylim")),
+    xlim        = lim_pair(opt("xlim")),
+    ylim        = lim_pair(opt("ylim")),
     x_breaks    = unlist(opt("x_breaks")),
     y_breaks    = unlist(opt("y_breaks")),
     pi_fill     = vpcspec$pi_fill  %||% "steelblue3",
@@ -692,7 +697,9 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
 
   logY       <- isTRUE(vpc_spec$logY)
   pred_corr  <- isTRUE(vpc_spec$predCorr)
-  lloq_val   <- vpc_spec$lloq
+  # vpc censors only values strictly below the LLOQ, but BQL rows often carry
+  # the LLOQ itself as DV. Nudge it up so those rows are censored in both panels.
+  lloq_val   <- if (is.null(vpc_spec$lloq)) NULL else vpc_spec$lloq + 1e-7
   censor     <- isTRUE(vpc_spec$censor)
   smooth     <- isTRUE(vpc_spec$smooth %||% TRUE)
   show_legend <- isTRUE(vpc_spec$show_legend %||% TRUE)
@@ -799,7 +806,7 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
   }
 
   # vpc's own guess_software()/filter_dv() would otherwise re-drop MDV!=0 rows
-  # (e.g. preserved BQL rows) once it classifies this as NONMEM-format data.
+  # once it classifies this as NONMEM-format data.
   # EVID is left in place so vpc's EVID==0 dosing-row exclusion still applies.
   obs <- dplyr::select(obs, -dplyr::any_of("MDV"))
   sim <- dplyr::select(sim, -dplyr::any_of("MDV"))
@@ -859,7 +866,7 @@ render_vpc_plot <- function(obs, sim, vpc_spec,
       sim_cols  = list(idv = time_col, dv = sim_col, pred = "PRED", sim = "rep"),
       obs_cols  = list(idv = time_col, dv = "DV",    pred = "PRED"),
       stratify  = stratify_final,
-      lloq      = lloq_val + 0.01,
+      lloq      = lloq_val,
       vpc_theme = vpc_theme,
       ylab      = "Probability of <LLOQ",
       bins      = bins,
